@@ -1,0 +1,16 @@
+{
+  "best_model_name": "xgboost",
+  "best_f1_score": 0.7899159663865546,
+  "dataset_path": "C:\\Users\\Zhanel\\Desktop\\Diploma_Project\\PROJECT\\iiot_platform2\\data\\raw\\ai4i2020.csv",
+  "processed_dataset_path": "C:\\Users\\Zhanel\\Desktop\\Diploma_Project\\PROJECT\\iiot_platform2\\data\\processed\\ai4i_clean.csv",
+  "target_column": "machine_failure",
+  "feature_columns": [
+    "type",
+    "air_temperature_k",
+    "process_temperature_k",
+    "rotational_speed_rpm",
+    "torque_nm",
+    "tool_wear_min"
+  ],
+  "notes": "Failure-type flags (twf, hdf, pwf, osf, rnf) were excluded to avoid data leakage."
+}
