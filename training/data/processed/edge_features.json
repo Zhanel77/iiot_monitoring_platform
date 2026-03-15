@@ -1,0 +1,8 @@
+[
+  "Air temperature [K]",
+  "temp_diff",
+  "Rotational speed [rpm]",
+  "Torque [Nm]",
+  "power_kw",
+  "Tool wear [min]"
+]
