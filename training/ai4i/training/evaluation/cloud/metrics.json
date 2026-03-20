@@ -1,0 +1,29 @@
+{
+  "model_type": "cloud",
+  "model_name": "XGBClassifier",
+  "accuracy": 0.966,
+  "precision": 0.5,
+  "recall": 0.867647,
+  "f1_score": 0.634409,
+  "roc_auc": 0.974775,
+  "pr_auc": 0.845945,
+  "confusion_matrix": [
+    [
+      1873,
+      59
+    ],
+    [
+      9,
+      59
+    ]
+  ],
+  "features": [
+    "Air temperature [K]",
+    "temp_diff",
+    "Rotational speed [rpm]",
+    "Torque [Nm]",
+    "power_kw",
+    "Tool wear [min]"
+  ],
+  "test_size": 2000
+}

@@ -1,0 +1,29 @@
+{
+  "model_type": "edge",
+  "model_name": "RandomForestClassifier",
+  "accuracy": 0.987,
+  "precision": 0.783784,
+  "recall": 0.852941,
+  "f1_score": 0.816901,
+  "roc_auc": 0.975673,
+  "confusion_matrix": [
+    [
+      1916,
+      16
+    ],
+    [
+      10,
+      58
+    ]
+  ],
+  "features": [
+    "Air temperature [K]",
+    "temp_diff",
+    "Rotational speed [rpm]",
+    "Torque [Nm]",
+    "power_kw",
+    "Tool wear [min]"
+  ],
+  "train_size": 8000,
+  "test_size": 2000
+}

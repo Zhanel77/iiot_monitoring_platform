@@ -1,0 +1,61 @@
+{
+  "model_type": "fault_type_multiclass",
+  "model_name": "XGBoost + SMOTE",
+  "classes": [
+    "HDF",
+    "NO_FAILURE",
+    "OSF",
+    "PWF",
+    "TWF"
+  ],
+  "macro_f1": 0.93569,
+  "weighted_f1": 0.939522,
+  "confusion_matrix": [
+    [
+      23,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      2,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      14,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      18,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      1,
+      7
+    ]
+  ],
+  "features": [
+    "Air temperature [K]",
+    "temp_diff",
+    "Rotational speed [rpm]",
+    "Torque [Nm]",
+    "power_kw",
+    "Tool wear [min]"
+  ],
+  "train_size_before_smote": 271,
+  "train_size_after_smote": 460,
+  "test_size": 68
+}

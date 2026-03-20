@@ -14,9 +14,14 @@ RAW_REQUIRED_COLUMNS = [
     "Torque [Nm]",
     "Tool wear [min]",
     TARGET_COLUMN,
+    "TWF",
+    "HDF",
+    "PWF",
+    "OSF",
+    "RNF",
 ]
 
-EDGE_FEATURES = [
+COMMON_FEATURES = [
     "Air temperature [K]",
     "temp_diff",
     "Rotational speed [rpm]",
@@ -25,19 +30,20 @@ EDGE_FEATURES = [
     "Tool wear [min]",
 ]
 
+EDGE_FEATURES = COMMON_FEATURES
+CLOUD_FEATURES = COMMON_FEATURES
+
+
 COLUMNS_TO_DROP = [
     "UDI",
     "Product ID",
     "Type",
-    "TWF",
-    "HDF",
-    "PWF",
-    "OSF",
-    "RNF",
 ]
 
-PROCESSED_DATA_PATH = Path("training/data/processed/predictive_maintenance_processed.csv")
+BASE_DIR = Path(__file__).resolve().parent.parent
 
+PROCESSED_DATA_PATH = BASE_DIR / "data/processed/predictive_maintenance_processed.csv"
+RAW_DATA_PATH = BASE_DIR / "data/raw/ai4i2020.csv"
 
 def load_raw_data(csv_path: str | Path) -> pd.DataFrame:
     csv_path = Path(csv_path)
@@ -57,26 +63,20 @@ def load_raw_data(csv_path: str | Path) -> pd.DataFrame:
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    # remove duplicates
     df = df.drop_duplicates()
-
-    # remove rows with missing values in required columns
     df = df.dropna(subset=RAW_REQUIRED_COLUMNS)
 
-    # drop unused columns
     existing_cols = [col for col in COLUMNS_TO_DROP if col in df.columns]
     df = df.drop(columns=existing_cols, errors="ignore")
 
     return df
 
 
-def add_edge_features(df: pd.DataFrame) -> pd.DataFrame:
+def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    # temperature difference
     df["temp_diff"] = df["Process temperature [K]"] - df["Air temperature [K]"]
 
-    # mechanical power in kW
     df["power_kw"] = (
         2 * np.pi * df["Torque [Nm]"] * df["Rotational speed [rpm]"] / 60.0 / 1000.0
     )
@@ -85,65 +85,121 @@ def add_edge_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def preprocess_and_save_data(csv_path: str | Path) -> None:
-    """
-    Load raw data, preprocess it, and save to training/data/processed/
-    """
     df = load_raw_data(csv_path)
     df = clean_data(df)
-    df = add_edge_features(df)
-    
-    # Ensure target column is integer
+    df = add_engineered_features(df)
+
     df[TARGET_COLUMN] = df[TARGET_COLUMN].astype(int)
-    
-    # Create processed data directory if it doesn't exist
+    for col in ["TWF", "HDF", "PWF", "OSF", "RNF"]:
+        df[col] = df[col].astype(int)
+
     PROCESSED_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    
-    # Save full processed dataset
     df.to_csv(PROCESSED_DATA_PATH, index=False)
+
     print(f"Processed data saved to: {PROCESSED_DATA_PATH}")
     print(f"Shape: {df.shape}")
-    print(f"Features: {list(df.columns)}")
-    
-    # Also save feature list separately
-    save_feature_list(PROCESSED_DATA_PATH.parent / "edge_features.json")
+    print(f"Columns: {list(df.columns)}")
+
+    save_feature_list(COMMON_FEATURES, PROCESSED_DATA_PATH.parent / "common_features.json")
 
 
-def get_processed_data() -> tuple[pd.DataFrame, pd.Series]:
-    """
-    Load processed data and split into features and target for edge deployment
-    """
+def get_processed_dataframe() -> pd.DataFrame:
     if not PROCESSED_DATA_PATH.exists():
         raise FileNotFoundError(
             f"Processed data not found at {PROCESSED_DATA_PATH}. "
             "Run preprocess_and_save_data() first."
         )
-    
-    df = pd.read_csv(PROCESSED_DATA_PATH)
-    
+
+    return pd.read_csv(PROCESSED_DATA_PATH)
+
+
+def build_edge_dataset(csv_path: str | Path | None = None) -> tuple[pd.DataFrame, pd.Series]:
+    if csv_path is not None:
+        df = load_raw_data(csv_path)
+        df = clean_data(df)
+        df = add_engineered_features(df)
+        df[TARGET_COLUMN] = df[TARGET_COLUMN].astype(int)
+    else:
+        df = get_processed_dataframe()
+
     X = df[EDGE_FEATURES].copy()
-    y = df[TARGET_COLUMN].copy()
-    
+    y = df[TARGET_COLUMN].astype(int).copy()
+
     return X, y
 
 
-def save_feature_list(output_path: str | Path) -> None:
+def build_cloud_dataset(csv_path: str | Path | None = None) -> tuple[pd.DataFrame, pd.Series]:
+    if csv_path is not None:
+        df = load_raw_data(csv_path)
+        df = clean_data(df)
+        df = add_engineered_features(df)
+        df[TARGET_COLUMN] = df[TARGET_COLUMN].astype(int)
+    else:
+        df = get_processed_dataframe()
+
+    X = df[CLOUD_FEATURES].copy()
+    y = df[TARGET_COLUMN].astype(int).copy()
+
+    return X, y
+
+
+def add_fault_type_column(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    def detect_fault_type(row):
+        if row["TWF"] == 1:
+            return "TWF"
+        elif row["HDF"] == 1:
+            return "HDF"
+        elif row["PWF"] == 1:
+            return "PWF"
+        elif row["OSF"] == 1:
+            return "OSF"
+        elif row["RNF"] == 1:
+            return "RNF"
+        else:
+            return "NO_FAILURE"
+
+    df["fault_type"] = df.apply(detect_fault_type, axis=1)
+    return df
+
+
+def build_fault_type_dataset(only_failures: bool = True) -> tuple[pd.DataFrame, pd.Series]:
+    df = get_processed_dataframe()
+    df = add_fault_type_column(df)
+
+    if only_failures:
+        df = df[df[TARGET_COLUMN] == 1].copy()
+
+    X = df[COMMON_FEATURES].copy()
+    y = df["fault_type"].copy()
+
+    return X, y
+
+
+def save_feature_list(features: list[str], output_path: str | Path) -> None:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(EDGE_FEATURES, f, ensure_ascii=False, indent=2)
-        print(f"Feature list saved to: {output_path}")
+        json.dump(features, f, ensure_ascii=False, indent=2)
+
+    print(f"Feature list saved to: {output_path}")
 
 
-# Example usage
 if __name__ == "__main__":
-    # Replace with your actual raw data path
     raw_data_path = "training/data/raw/ai4i2020.csv"
-    
-    # Preprocess and save data
+
     preprocess_and_save_data(raw_data_path)
-    
-    # Load processed data for edge deployment
-    X, y = get_processed_data()
-    print(f"\nEdge features shape: {X.shape}")
-    print(f"Target shape: {y.shape}")
+
+    X_edge, y_edge = build_edge_dataset()
+    print(f"\nEdge features shape: {X_edge.shape}")
+    print(f"Edge target shape: {y_edge.shape}")
+
+    X_cloud, y_cloud = build_cloud_dataset()
+    print(f"\nCloud features shape: {X_cloud.shape}")
+    print(f"Cloud target shape: {y_cloud.shape}")
+
+    X_fault, y_fault = build_fault_type_dataset()
+    print(f"\nFault type features shape: {X_fault.shape}")
+    print(f"Fault type target shape: {y_fault.shape}")
