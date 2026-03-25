@@ -25,7 +25,7 @@ EVAL_DIR = BASE_DIR / "evaluation" / "cloud"
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 EVAL_DIR.mkdir(parents=True, exist_ok=True)
 
-MODEL_PATH = ARTIFACTS_DIR / "cloud_model.pkl"
+MODEL_PATH = ARTIFACTS_DIR / "cloud_model.json"
 METRICS_PATH = EVAL_DIR / "metrics.json"
 PREDICTIONS_PATH = EVAL_DIR / "predictions.csv"
 
