@@ -1,0 +1,112 @@
+version: "3.9"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./infrastructure/mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    restart: always
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: predictive_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influx_data:/var/lib/influxdb2
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - postgres
+      - influxdb
+    restart: always
+
+  # edge-service:
+  #   build: ./edge
+  #   container_name: edge-service
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - mosquitto
+  #   restart: always
+
+  # mqtt-consumer:
+  #   build: ./mqtt_consumer
+  #   container_name: mqtt-consumer
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - mosquitto
+  #     - postgres
+  #     - influxdb
+  #   restart: always
+
+  # cloud-ml:
+  #   build: ./cloud_ml
+  #   container_name: cloud-ml
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - postgres
+  #     - influxdb
+  #   restart: always
+
+  # alert-service:
+  #   build: ./alert_service
+  #   container_name: alert-service
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - postgres
+  #   restart: always
+
+  # dashboard-api:
+  #   build: ./dashboard_api
+  #   container_name: dashboard-api
+  #   ports:
+  #     - "8000:8000"
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - postgres
+  #   restart: always
+
+  simulator:
+    build: ./simulator
+    container_name: simulator
+    env_file:
+      - .env
+    depends_on:
+      - edge-service
+      - mosquitto
+    restart: always
+
+# volumes:
+#   postgres_data:
+#   influx_data:
