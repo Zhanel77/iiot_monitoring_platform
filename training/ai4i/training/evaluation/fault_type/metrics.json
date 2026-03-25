@@ -1,0 +1,86 @@
+{
+  "model_type": "fault_type_multiclass",
+  "model_name": "XGBClassifier",
+  "classes": [
+    "HDF",
+    "NO_FAILURE",
+    "OSF",
+    "PWF",
+    "TWF"
+  ],
+  "accuracy": 0.863636,
+  "macro_f1": 0.840926,
+  "weighted_f1": 0.858321,
+  "confusion_matrix": [
+    [
+      23,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      10,
+      4,
+      1
+    ],
+    [
+      0,
+      0,
+      1,
+      17,
+      0
+    ],
+    [
+      0,
+      0,
+      2,
+      0,
+      7
+    ]
+  ],
+  "features": [
+    "air_temperature_k",
+    "temp_diff",
+    "rotational_speed_rpm",
+    "torque_nm",
+    "power_kw",
+    "tool_wear_min"
+  ],
+  "test_size": 66,
+  "per_class": {
+    "HDF": {
+      "precision": 0.958333,
+      "recall": 1.0,
+      "f1_score": 0.978723,
+      "support": 23
+    },
+    "OSF": {
+      "precision": 0.769231,
+      "recall": 0.625,
+      "f1_score": 0.689655,
+      "support": 16
+    },
+    "PWF": {
+      "precision": 0.809524,
+      "recall": 0.944444,
+      "f1_score": 0.871795,
+      "support": 18
+    },
+    "TWF": {
+      "precision": 0.875,
+      "recall": 0.777778,
+      "f1_score": 0.823529,
+      "support": 9
+    }
+  }
+}
