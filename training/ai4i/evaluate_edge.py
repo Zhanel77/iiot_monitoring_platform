@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import joblib
-import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -12,10 +11,9 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-
 from sklearn.model_selection import train_test_split
 
-from preprocess import build_edge_dataset, EDGE_FEATURES
+from preprocess import build_edge_dataset
 
 
 BASE_DIR = Path(__file__).resolve().parent / "training"
@@ -31,13 +29,12 @@ METRICS_PATH = EVAL_DIR / "metrics.json"
 PREDICTIONS_PATH = EVAL_DIR / "predictions.csv"
 
 
-def evaluate_edge():
+def evaluate_edge() -> None:
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"Edge model not found: {MODEL_PATH}")
 
     X, y = build_edge_dataset()
 
-    # Чтобы evaluate был согласован с train/test логикой
     _, X_test, _, y_test = train_test_split(
         X,
         y,
@@ -60,18 +57,18 @@ def evaluate_edge():
         "f1_score": round(float(f1_score(y_test, y_pred, zero_division=0)), 6),
         "roc_auc": round(float(roc_auc_score(y_test, y_prob)), 6),
         "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
-        "features": list(EDGE_FEATURES),
+        "features": list(X_test.columns),
         "test_size": int(len(X_test)),
     }
 
     print("Edge classification report:")
-    print(classification_report(y_test, y_pred, digits=4))
+    print(classification_report(y_test, y_pred, digits=4, zero_division=0))
 
     print("\nEdge metrics:")
     print(json.dumps(metrics, indent=2))
 
-    predictions_df = X_test.copy()
-    predictions_df["true_label"] = y_test.values
+    predictions_df = X_test.reset_index(drop=True).copy()
+    predictions_df["true_label"] = y_test.reset_index(drop=True)
     predictions_df["predicted_label"] = y_pred
     predictions_df["predicted_probability"] = y_prob
     predictions_df.to_csv(PREDICTIONS_PATH, index=False)

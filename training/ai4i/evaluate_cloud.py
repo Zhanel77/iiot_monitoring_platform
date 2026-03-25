@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import joblib
-import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
@@ -15,7 +14,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 
-from preprocess import build_cloud_dataset, CLOUD_FEATURES
+from preprocess import build_cloud_dataset
 
 
 BASE_DIR = Path(__file__).resolve().parent / "training"
@@ -40,7 +39,7 @@ SAFE_FEATURE_MAP = {
 }
 
 
-def evaluate_cloud():
+def evaluate_cloud() -> None:
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"Cloud model not found: {MODEL_PATH}")
 
@@ -54,7 +53,6 @@ def evaluate_cloud():
         stratify=y,
     )
 
-    # Переименовываем признаки для XGBoost
     X_test_safe = X_test.rename(columns=SAFE_FEATURE_MAP)
 
     model = joblib.load(MODEL_PATH)
@@ -72,18 +70,18 @@ def evaluate_cloud():
         "roc_auc": round(float(roc_auc_score(y_test, y_prob)), 6),
         "pr_auc": round(float(average_precision_score(y_test, y_prob)), 6),
         "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
-        "features": list(CLOUD_FEATURES),
-        "test_size": int(len(X_test)),
+        "features": list(X_test_safe.columns),
+        "test_size": int(len(X_test_safe)),
     }
 
     print("Cloud classification report:")
-    print(classification_report(y_test, y_pred, digits=4))
+    print(classification_report(y_test, y_pred, digits=4, zero_division=0))
 
     print("\nCloud metrics:")
     print(json.dumps(metrics, indent=2))
 
-    predictions_df = X_test.copy()
-    predictions_df["true_label"] = y_test.values
+    predictions_df = X_test_safe.reset_index(drop=True).copy()
+    predictions_df["true_label"] = y_test.reset_index(drop=True)
     predictions_df["predicted_label"] = y_pred
     predictions_df["predicted_probability"] = y_prob
     predictions_df.to_csv(PREDICTIONS_PATH, index=False)

@@ -4,14 +4,14 @@ from pathlib import Path
 import joblib
 import pandas as pd
 from sklearn.metrics import (
+    accuracy_score,
     classification_report,
     confusion_matrix,
     f1_score,
-    accuracy_score,
 )
 from sklearn.model_selection import train_test_split
 
-from preprocess import build_fault_type_dataset, COMMON_FEATURES
+from preprocess import build_fault_type_dataset
 
 
 BASE_DIR = Path(__file__).resolve().parent / "training"
@@ -37,7 +37,7 @@ SAFE_FEATURE_MAP = {
 }
 
 
-def evaluate_fault_type():
+def evaluate_fault_type() -> None:
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"Fault type model not found: {MODEL_PATH}")
 
@@ -67,7 +67,7 @@ def evaluate_fault_type():
     y_test_labels = label_encoder.inverse_transform(y_test)
     y_pred_labels = label_encoder.inverse_transform(y_pred)
 
-    class_report = classification_report(
+    report_dict = classification_report(
         y_test_labels,
         y_pred_labels,
         digits=4,
@@ -80,25 +80,25 @@ def evaluate_fault_type():
         "model_name": type(model).__name__,
         "classes": list(label_encoder.classes_),
         "accuracy": round(float(accuracy_score(y_test, y_pred)), 6),
-        "macro_f1": round(float(f1_score(y_test, y_pred, average="macro")), 6),
-        "weighted_f1": round(float(f1_score(y_test, y_pred, average="weighted")), 6),
+        "macro_f1": round(float(f1_score(y_test, y_pred, average="macro", zero_division=0)), 6),
+        "weighted_f1": round(float(f1_score(y_test, y_pred, average="weighted", zero_division=0)), 6),
         "confusion_matrix": confusion_matrix(
             y_test_labels,
             y_pred_labels,
-            labels=list(label_encoder.classes_)
+            labels=list(label_encoder.classes_),
         ).tolist(),
-        "features": list(COMMON_FEATURES),
-        "test_size": int(len(X_test)),
+        "features": list(X_test_safe.columns),
+        "test_size": int(len(X_test_safe)),
         "per_class": {},
     }
 
     for cls in label_encoder.classes_:
-        if cls in class_report:
+        if cls in report_dict:
             metrics["per_class"][cls] = {
-                "precision": round(float(class_report[cls]["precision"]), 6),
-                "recall": round(float(class_report[cls]["recall"]), 6),
-                "f1_score": round(float(class_report[cls]["f1-score"]), 6),
-                "support": int(class_report[cls]["support"]),
+                "precision": round(float(report_dict[cls]["precision"]), 6),
+                "recall": round(float(report_dict[cls]["recall"]), 6),
+                "f1_score": round(float(report_dict[cls]["f1-score"]), 6),
+                "support": int(report_dict[cls]["support"]),
             }
 
     print("Fault type classification report:")
@@ -109,10 +109,10 @@ def evaluate_fault_type():
 
     proba_df = pd.DataFrame(
         y_prob,
-        columns=[f"prob_{cls}" for cls in label_encoder.classes_]
+        columns=[f"prob_{cls}" for cls in label_encoder.classes_],
     )
 
-    predictions_df = X_test.reset_index(drop=True).copy()
+    predictions_df = X_test_safe.reset_index(drop=True).copy()
     predictions_df["true_fault_type"] = y_test_labels
     predictions_df["predicted_fault_type"] = y_pred_labels
     predictions_df = pd.concat([predictions_df, proba_df], axis=1)
