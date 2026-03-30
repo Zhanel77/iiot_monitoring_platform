@@ -103,10 +103,10 @@ services:
     env_file:
       - .env
     depends_on:
-      - edge-service
+      # - edge-service
       - mosquitto
     restart: always
 
-# volumes:
-#   postgres_data:
-#   influx_data:
+volumes:
+  postgres_data:
+  influx_data:
