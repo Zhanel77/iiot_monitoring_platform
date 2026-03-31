@@ -1,21 +1,23 @@
-import math
+from app.schemas import RawMQTTMessage, AdaptedFeatures
 
 
-def adapt_raw_payload(raw: dict) -> dict:
-    air_temp = raw["Air temperature [K]"]
-    process_temp = raw["Process temperature [K]"]
-    rpm = raw["Rotational speed [rpm]"]
-    torque = raw["Torque [Nm]"]
-    tool_wear = raw["Tool wear [min]"]
+def adapt_raw_message(raw: RawMQTTMessage) -> AdaptedFeatures:
+    sensors = raw.sensors
 
-    temp_diff = process_temp - air_temp
-    power_kw = 2 * math.pi * torque * rpm / 60.0 / 1000.0
-
-    return {
-        "Air temperature [K]": air_temp,
-        "temp_diff": temp_diff,
-        "Rotational speed [rpm]": rpm,
-        "Torque [Nm]": torque,
-        "power_kw": power_kw,
-        "Tool wear [min]": tool_wear,
+    features = {
+        "Air temperature [K]": sensors.air_temperature_k,
+        "Process temperature [K]": sensors.process_temperature_k,
+        "Rotational speed [rpm]": sensors.rotational_speed_rpm,
+        "Torque [Nm]": sensors.torque_nm,
+        "Tool wear [min]": sensors.tool_wear_min,
     }
+
+    return AdaptedFeatures(
+        device_id=raw.device_id,
+        machine_id=raw.machine_id,
+        timestamp=raw.timestamp,
+        source=raw.source,
+        scenario=raw.scenario,
+        features=features,
+        ground_truth=raw.ground_truth.model_dump() if raw.ground_truth else None,
+    )

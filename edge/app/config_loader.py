@@ -1,23 +1,12 @@
 import json
 from pathlib import Path
+from typing import Dict, Any
 
 
-CONFIG_DIR = Path(__file__).resolve().parent / "config"
+def load_normalization_config(path: str) -> Dict[str, Any]:
+    config_path = Path(path)
+    if not config_path.exists():
+        raise FileNotFoundError(f"Normalization config not found: {path}")
 
-
-def load_json(path: Path) -> dict:
-    with open(path, "r", encoding="utf-8") as f:
+    with config_path.open("r", encoding="utf-8") as f:
         return json.load(f)
-
-
-def load_device_config(machine_id: int | None = None) -> dict:
-    if machine_id is not None:
-        machine_path = CONFIG_DIR / f"machine_{machine_id}.json"
-        if machine_path.exists():
-            return load_json(machine_path)
-
-    fallback_path = CONFIG_DIR / "training_fallback.json"
-    if fallback_path.exists():
-        return load_json(fallback_path)
-
-    raise FileNotFoundError("No config found for device and no training fallback config found.")

@@ -47,14 +47,14 @@ services:
       - influxdb
     restart: always
 
-  # edge-service:
-  #   build: ./edge
-  #   container_name: edge-service
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - mosquitto
-  #   restart: always
+  edge-service:
+    build: ./edge
+    container_name: edge-service
+    env_file:
+      - .env
+    depends_on:
+      - mosquitto
+    restart: always
 
   # mqtt-consumer:
   #   build: ./mqtt_consumer

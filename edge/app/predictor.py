@@ -1,80 +1,37 @@
-from pathlib import Path
-
+from typing import Dict, List, Tuple
 import joblib
+import numpy as np
 import pandas as pd
-
-from config_loader import load_device_config
-from adapter import adapt_raw_payload
-
-
-MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "edge_model.pkl"
-
-FEATURE_ORDER = [
-    "Air temperature [K]",
-    "temp_diff",
-    "Rotational speed [rpm]",
-    "Torque [Nm]",
-    "power_kw",
-    "Tool wear [min]",
-]
-
-
-def safe_minmax(value: float, min_val: float, max_val: float) -> float:
-    denom = max_val - min_val
-    if abs(denom) < 1e-12:
-        return 0.0
-    result = (value - min_val) / denom
-    return max(0.0, min(1.0, result))
-
-
-def safe_ratio(value: float, max_val: float) -> float:
-    if abs(max_val) < 1e-12:
-        return 0.0
-    result = value / max_val
-    return max(0.0, min(1.0, result))
-
-
-def normalize_runtime(features: dict, norm_cfg: dict) -> dict:
-    normalized = {}
-
-    for feature_name, value in features.items():
-        cfg = norm_cfg[feature_name]
-        mode = cfg["mode"]
-
-        if mode == "minmax":
-            normalized[feature_name] = safe_minmax(value, cfg["min"], cfg["max"])
-        elif mode == "ratio":
-            normalized[feature_name] = safe_ratio(value, cfg["max"])
-        else:
-            raise ValueError(f"Unsupported normalization mode: {mode}")
-
-    return normalized
 
 
 class EdgePredictor:
-    def __init__(self):
-        if not MODEL_PATH.exists():
-            raise FileNotFoundError(f"Edge model not found: {MODEL_PATH}")
-        self.model = joblib.load(MODEL_PATH)
+    def __init__(self, model_path: str, feature_order: List[str]):
+        self.model = joblib.load(model_path)
+        self.feature_order = feature_order
 
-    def predict(self, raw_payload: dict) -> dict:
-        machine_id = raw_payload.get("machine_id")
-        config = load_device_config(machine_id)
+    def prepare_vector(self, normalized_features):
+        return pd.DataFrame([normalized_features])[self.feature_order]
 
-        features = adapt_raw_payload(raw_payload)
-        normalized = normalize_runtime(features, config)
+    def predict(self, normalized_features: Dict[str, float]) -> Tuple[int, float]:
+        x = self.prepare_vector(normalized_features)
 
-        x = pd.DataFrame(
-            [[normalized[col] for col in FEATURE_ORDER]],
-            columns=FEATURE_ORDER,
-        )
+        pred = int(self.model.predict(x)[0])
 
-        prediction = int(self.model.predict(x)[0])
-        risk_score = float(self.model.predict_proba(x)[0][1])
+        if hasattr(self.model, "predict_proba"):
+            proba = float(self.model.predict_proba(x)[0][1])
+        else:
+            proba = float(pred)
 
-        return {
-            "machine_id": machine_id,
-            "prediction": prediction,
-            "risk_score": risk_score,
-            "features": normalized,
-        }
+        return pred, proba
+
+
+def resolve_risk_level(risk_score: float, warning_threshold: float, critical_threshold: float) -> str:
+    if risk_score >= critical_threshold:
+        return "CRITICAL"
+    if risk_score >= warning_threshold:
+        return "WARNING"
+    return "NORMAL"
+
+
+def resolve_prediction_label(prediction: int) -> str:
+    return "FAILURE_RISK" if prediction == 1 else "NORMAL"
