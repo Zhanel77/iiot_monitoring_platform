@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS devices (
+    id SERIAL PRIMARY KEY,
+    machine_id INTEGER NOT NULL UNIQUE,
+    device_id VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(100),
+    status VARCHAR(50) DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

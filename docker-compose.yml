@@ -19,10 +19,10 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./infrastructure/postgres/migrations:/docker-entrypoint-initdb.d
     restart: always
 
   influxdb:
@@ -56,16 +56,16 @@ services:
       - mosquitto
     restart: always
 
-  # mqtt-consumer:
-  #   build: ./mqtt_consumer
-  #   container_name: mqtt-consumer
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - mosquitto
-  #     - postgres
-  #     - influxdb
-  #   restart: always
+  mqtt-consumer:
+    build: ./mqtt_consumer
+    container_name: mqtt-consumer
+    env_file:
+      - .env
+    depends_on:
+      - mosquitto
+      - postgres
+      - influxdb
+    restart: always
 
   # cloud-ml:
   #   build: ./cloud_ml
