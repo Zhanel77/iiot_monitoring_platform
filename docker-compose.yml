@@ -93,16 +93,17 @@ services:
   #     - postgres
   #   restart: always
 
-  # dashboard-api:
-  #   build: ./dashboard_api
-  #   container_name: dashboard-api
-  #   ports:
-  #     - "8000:8000"
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - postgres
-  #   restart: always
+  dashboard_api:
+    build:
+      context: ./dashboard_api
+    container_name: dashboard_api
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    restart: always
 
   simulator:
     build: ./simulator
