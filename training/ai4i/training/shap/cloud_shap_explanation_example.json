@@ -1,0 +1,53 @@
+{
+  "prediction": 0,
+  "probability": 0.028957238420844078,
+  "top_factors": [
+    {
+      "feature": "Rotational_speed_rpm",
+      "feature_value": 0.7758159443552702,
+      "shap_value": -1.3398969173431396
+    },
+    {
+      "feature": "Tool_wear_min",
+      "feature_value": 0.8737864077669902,
+      "shap_value": -0.9160556793212891
+    },
+    {
+      "feature": "temp_diff",
+      "feature_value": 0.6999999999999943,
+      "shap_value": -0.6520616412162781
+    }
+  ],
+  "all_factors": [
+    {
+      "feature": "Rotational_speed_rpm",
+      "feature_value": 0.7758159443552702,
+      "shap_value": -1.3398969173431396
+    },
+    {
+      "feature": "Tool_wear_min",
+      "feature_value": 0.8737864077669902,
+      "shap_value": -0.9160556793212891
+    },
+    {
+      "feature": "temp_diff",
+      "feature_value": 0.6999999999999943,
+      "shap_value": -0.6520616412162781
+    },
+    {
+      "feature": "Torque_Nm",
+      "feature_value": 0.9236234458259326,
+      "shap_value": -0.37977972626686096
+    },
+    {
+      "feature": "power_kw",
+      "feature_value": 0.9815122917491917,
+      "shap_value": -0.13854049146175385
+    },
+    {
+      "feature": "Air_temperature_K",
+      "feature_value": 0.20312499999999362,
+      "shap_value": -0.08256372064352036
+    }
+  ]
+}
