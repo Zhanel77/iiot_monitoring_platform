@@ -1,0 +1,28 @@
+{
+  "Air temperature [K]": {
+    "mode": "minmax",
+    "min": 297.2,
+    "max": 303.485
+  },
+  "temp_diff": {
+    "mode": "minmax",
+    "min": 7.800000000000011,
+    "max": 11.300000000000011
+  },
+  "Rotational speed [rpm]": {
+    "mode": "ratio",
+    "max": 2662.4
+  },
+  "Torque [Nm]": {
+    "mode": "ratio",
+    "max": 69.085
+  },
+  "power_kw": {
+    "mode": "ratio",
+    "max": 9.466438620948633
+  },
+  "Tool wear [min]": {
+    "mode": "ratio",
+    "max": 228.0
+  }
+}

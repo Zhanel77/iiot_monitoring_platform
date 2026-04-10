@@ -1,8 +1,8 @@
 [
-  "air_temperature_k",
+  "Air temperature [K]",
   "temp_diff",
-  "rotational_speed_rpm",
-  "torque_nm",
+  "Rotational speed [rpm]",
+  "Torque [Nm]",
   "power_kw",
-  "tool_wear_min"
+  "Tool wear [min]"
 ]
