@@ -1,19 +1,19 @@
 {
   "model_type": "edge",
   "model_name": "RandomForestClassifier",
-  "accuracy": 0.9695,
-  "precision": 0.533981,
-  "recall": 0.808824,
-  "f1_score": 0.643275,
-  "roc_auc": 0.972015,
+  "accuracy": 0.9335,
+  "precision": 0.324324,
+  "recall": 0.882353,
+  "f1_score": 0.474308,
+  "roc_auc": 0.973633,
   "confusion_matrix": [
     [
-      1884,
-      48
+      1807,
+      125
     ],
     [
-      13,
-      55
+      8,
+      60
     ]
   ],
   "features": [
@@ -24,6 +24,8 @@
     "power_kw",
     "Tool wear [min]"
   ],
-  "train_size": 8000,
-  "test_size": 2000
+  "train_size_before_smote": 8000,
+  "train_size_after_smote": 15458,
+  "test_size": 2000,
+  "smote_enabled": true
 }
