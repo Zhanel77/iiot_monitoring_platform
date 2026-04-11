@@ -5,7 +5,9 @@ from app.core.dependencies import require_admin
 from app.db.session import get_db
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.repositories.user_device_repository import UserDeviceRepository
 from app.schemas.user import UserRead, UserUpdateRoleRequest, UserUpdateStatusRequest
+
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -50,3 +52,26 @@ def update_user_status(
         raise HTTPException(status_code=404, detail="User not found")
 
     return repo.update_status(user, payload.is_active)
+
+@router.post("/{user_id}/devices/{device_id}")
+def assign_device(
+    user_id: int,
+    device_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    repo = UserDeviceRepository(db)
+    repo.assign(user_id, device_id)
+    return {"message": "assigned"}
+
+
+@router.delete("/{user_id}/devices/{device_id}")
+def remove_device(
+    user_id: int,
+    device_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    repo = UserDeviceRepository(db)
+    repo.remove(user_id, device_id)
+    return {"message": "removed"}
