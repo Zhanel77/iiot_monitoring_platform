@@ -1,9 +1,9 @@
 import json
-import math
 import time
 from typing import Any
 
 import paho.mqtt.client as mqtt
+import requests
 
 from app.config import Settings
 from app.influx_writer import InfluxWriter
@@ -18,12 +18,13 @@ class MQTTConsumer:
     def __init__(self) -> None:
         self.client = mqtt.Client(
             client_id=f"{Settings.MQTT_CLIENT_ID}-{time.time()}"
-        )   
+        )
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
         self.pg = PostgresWriter()
         self.influx = InfluxWriter()
+        self.http = requests.Session()
 
     def on_connect(
         self,
@@ -50,7 +51,7 @@ class MQTTConsumer:
         msg: mqtt.MQTTMessage,
     ) -> None:
         try:
-            payload = msg.payload.decode("utf-8") 
+            payload = msg.payload.decode("utf-8")
             logger.info("Received message from %s: %s", msg.topic, payload)
 
             data = json.loads(payload)
@@ -61,7 +62,7 @@ class MQTTConsumer:
                 device_id=event["device_id"],
             )
 
-            prediction_id = self.pg.insert_prediction(
+            edge_prediction_id = self.pg.insert_prediction(
                 device_id=event["device_id"],
                 machine_id=event["machine_id"],
                 event_time=event["timestamp"],
@@ -79,23 +80,77 @@ class MQTTConsumer:
                 self.pg.insert_alert(
                     device_id=event["device_id"],
                     machine_id=event["machine_id"],
-                    prediction_id=prediction_id,
+                    prediction_id=edge_prediction_id,
                     alert_type="failure_risk",
                     severity=self._severity_from_score(event["risk_score"]),
                     message=(
                         f"High risk detected for {event['device_id']} "
-                        f"(score={event['risk_score']:.4f}, level={event['risk_level']})"
+                        f"(score={event['risk_score']:.4f}, level={event['risk_level']}, model=edge)"
                     ),
                 )
                 logger.warning(
-                    "Alert created | device_id=%s machine_id=%s risk_score=%.4f",
+                    "Edge alert created | device_id=%s machine_id=%s risk_score=%.4f",
                     event["device_id"],
                     event["machine_id"],
                     event["risk_score"],
                 )
 
+            if Settings.ENABLE_CLOUD_PREDICTION:
+                cloud_result = self._get_cloud_prediction(event)
+                if cloud_result is not None:
+                    cloud_prediction_id = self.pg.insert_prediction(
+                        device_id=event["device_id"],
+                        machine_id=event["machine_id"],
+                        event_time=event["timestamp"],
+                        source=event.get("source"),
+                        scenario=event.get("scenario"),
+                        prediction=int(cloud_result["prediction"]),
+                        risk_score=float(cloud_result["risk_score"]),
+                        risk_level=str(cloud_result["risk_level"]),
+                        model_type="cloud",
+                    )
+
+                    self.influx.write_cloud_event(
+                        {
+                            **event,
+                            "prediction": int(cloud_result["prediction"]),
+                            "risk_score": float(cloud_result["risk_score"]),
+                            "risk_level": str(cloud_result["risk_level"]),
+                            "model_type": "cloud",
+                        }
+                    )
+
+                    if self._should_create_alert_from_result(cloud_result):
+                        self.pg.insert_alert(
+                            device_id=event["device_id"],
+                            machine_id=event["machine_id"],
+                            prediction_id=cloud_prediction_id,
+                            alert_type="failure_risk",
+                            severity=self._severity_from_score(float(cloud_result["risk_score"])),
+                            message=(
+                                f"High risk detected for {event['device_id']} "
+                                f"(score={float(cloud_result['risk_score']):.4f}, "
+                                f"level={cloud_result['risk_level']}, model=cloud)"
+                            ),
+                        )
+                        logger.warning(
+                            "Cloud alert created | device_id=%s machine_id=%s risk_score=%.4f",
+                            event["device_id"],
+                            event["machine_id"],
+                            float(cloud_result["risk_score"]),
+                        )
+
+                    logger.info(
+                        "Cloud prediction stored | machine_id=%s device_id=%s prediction=%s risk_score=%.4f risk_level=%s",
+                        event["machine_id"],
+                        event["device_id"],
+                        int(cloud_result["prediction"]),
+                        float(cloud_result["risk_score"]),
+                        str(cloud_result["risk_level"]),
+                    )
+
             logger.info(
-                "Event stored | machine_id=%s device_id=%s prediction=%s risk_score=%.4f risk_level=%s",
+                "Event stored | machine_id=%s device_id=%s edge_prediction=%s edge_risk_score=%.4f edge_risk_level=%s",
                 event["machine_id"],
                 event["device_id"],
                 event["prediction"],
@@ -111,7 +166,6 @@ class MQTTConsumer:
     def _normalize_event(self, data: dict) -> dict:
         ground_truth = data.get("ground_truth", {})
         failure_type = ground_truth.get("failure_type", {})
-
         features_raw = data.get("features_raw", {})
 
         air_temperature_k = float(features_raw.get("Air temperature [K]", 0.0))
@@ -135,6 +189,8 @@ class MQTTConsumer:
             "rotational_speed_rpm": rotational_speed_rpm,
             "torque_nm": torque_nm,
             "tool_wear_min": tool_wear_min,
+            "temp_diff": temp_diff,
+            "power_kw": power_kw,
 
             "machine_failure": int(ground_truth.get("machine_failure", 0)),
             "twf": int(failure_type.get("twf", 0)),
@@ -148,16 +204,61 @@ class MQTTConsumer:
             "risk_score": float(data.get("risk_score", 0.0)),
             "risk_level": str(data.get("risk_level", "UNKNOWN")),
             "model_name": str(data.get("model_name", "unknown")),
-
-            "temp_diff": temp_diff,
-            "power_kw": power_kw,
         }
+
+    def _build_cloud_payload(self, event: dict) -> dict:
+        return {
+            "Air temperature [K]": event["air_temperature_k"],
+            "Process temperature [K]": event["process_temperature_k"],
+            "Rotational speed [rpm]": event["rotational_speed_rpm"],
+            "Torque [Nm]": event["torque_nm"],
+            "Tool wear [min]": event["tool_wear_min"],
+            "temp_diff": event["temp_diff"],
+            "power_kw": event["power_kw"],
+        }
+
+    def _get_cloud_prediction(self, event: dict) -> dict | None:
+        payload = self._build_cloud_payload(event)
+
+        try:
+            response = self.http.post(
+                Settings.CLOUD_API_URL,
+                json=payload,
+                timeout=Settings.CLOUD_API_TIMEOUT,
+            )
+            response.raise_for_status()
+
+            result = response.json()
+            required = {"prediction", "risk_score", "risk_level"}
+            if not required.issubset(result):
+                logger.error("Invalid cloud API response | body=%s", result)
+                return None
+
+            return result
+
+        except requests.RequestException as exc:
+            logger.exception("Cloud prediction request failed | error=%s", exc)
+            return None
+        except ValueError:
+            logger.exception("Cloud prediction response is not valid JSON")
+            return None
 
     def _should_create_alert(self, event: dict) -> bool:
         return (
             event["prediction"] == 1
             or event["risk_level"].upper() in {"HIGH", "CRITICAL", "HIGH_RISK"}
             or event["risk_score"] >= Settings.ALERT_RISK_THRESHOLD
+        )
+
+    def _should_create_alert_from_result(self, result: dict) -> bool:
+        risk_level = str(result.get("risk_level", "")).upper()
+        risk_score = float(result.get("risk_score", 0.0))
+        prediction = int(result.get("prediction", 0))
+
+        return (
+            prediction == 1
+            or risk_level in {"HIGH", "CRITICAL", "HIGH_RISK"}
+            or risk_score >= Settings.ALERT_RISK_THRESHOLD
         )
 
     def _severity_from_score(self, score: float) -> str:
@@ -177,13 +278,11 @@ class MQTTConsumer:
         )
 
         self.client.reconnect_delay_set(min_delay=1, max_delay=10)
-
         self.client.connect(
             Settings.MQTT_BROKER_HOST,
             Settings.MQTT_BROKER_PORT,
             keepalive=60,
         )
-
         self.client.loop_start()
 
         try:
@@ -199,6 +298,11 @@ class MQTTConsumer:
                 pass
 
             try:
+                self.http.close()
+            except Exception:
+                pass
+
+            try:
                 self.pg.close()
             except Exception:
                 pass
@@ -206,4 +310,4 @@ class MQTTConsumer:
             try:
                 self.influx.close()
             except Exception:
-                pass
+                pass    
