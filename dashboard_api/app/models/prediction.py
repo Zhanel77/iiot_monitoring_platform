@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import String, Integer, Float, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 class Prediction(Base):
@@ -17,4 +18,6 @@ class Prediction(Base):
     risk_score: Mapped[float | None] = mapped_column(Float)
     risk_level: Mapped[str | None] = mapped_column(String(20))
     model_type: Mapped[str] = mapped_column(String(50), default="edge")
+    features_used: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    top_factors: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

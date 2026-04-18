@@ -38,4 +38,4 @@ class CloudShapExplainer:
         for row in rows:
             row.pop("abs_shap", None)
 
-        return rows
+        return rows 

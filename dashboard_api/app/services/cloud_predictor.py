@@ -5,6 +5,8 @@ from typing import Any, Dict
 import numpy as np
 import xgboost as xgb
 
+from app.services.shap_explainer import ShapExplainer
+
 
 def normalize_value(value: float, rule: Dict[str, Any]) -> float:
     mode = rule.get("mode")
@@ -47,6 +49,7 @@ class CloudPredictor:
             self.norm = json.load(f)
 
         self.safe_features = [sanitize_feature_name(f) for f in self.features]
+        self.shap_explainer = ShapExplainer()
 
     def normalize(self, data: dict) -> dict:
         result = {}
@@ -73,13 +76,23 @@ class CloudPredictor:
         X = np.array([[row[f] for f in self.safe_features]], dtype=float)
 
         dmatrix = xgb.DMatrix(X, feature_names=self.safe_features)
-
         prob = float(self.model.predict(dmatrix)[0])
+
+        prediction = int(prob > 0.5)
+        risk_level = self._level(prob)
+
+        top_factors = self.shap_explainer.explain(
+            normalized_features=normalized,
+            raw_features=data,
+            top_k=5,
+        )
 
         return {
             "risk_score": prob,
-            "prediction": int(prob > 0.5),
-            "risk_level": self._level(prob),
+            "prediction": prediction,
+            "risk_level": risk_level,
+            "features_used": data,
+            "top_factors": top_factors,
         }
 
     def _level(self, score: float):
