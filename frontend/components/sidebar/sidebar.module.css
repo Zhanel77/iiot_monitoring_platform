@@ -1,0 +1,190 @@
+.sidebar {
+  width: 280px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 18px;
+  background: linear-gradient(180deg, #071224 0%, #050d1c 100%);
+  border-right: 1px solid rgba(30, 41, 59, 0.9);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+  padding: 4px 8px 20px;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+}
+
+.logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #001018;
+  background: linear-gradient(135deg, #22d3ee 0%, #60a5fa 100%);
+  box-shadow: 0 10px 24px rgba(34, 211, 238, 0.24);
+}
+
+.brandLabel {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #67e8f9;
+}
+
+.brandTitle {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  color: #cbd5e1;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.navItem:hover {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(34, 211, 238, 0.18);
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+.navItemActive {
+  background: linear-gradient(
+    90deg,
+    rgba(34, 211, 238, 0.16),
+    rgba(59, 130, 246, 0.12)
+  );
+  border-color: rgba(34, 211, 238, 0.3);
+  color: #ffffff;
+}
+
+.navIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.9);
+  color: #67e8f9;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.profileCard {
+  margin-top: 28px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(30, 41, 59, 0.9);
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #001018;
+  background: linear-gradient(135deg, #22d3ee 0%, #a78bfa 100%);
+}
+
+.profileInfo {
+  margin-bottom: 14px;
+}
+
+.profileName {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.profileEmail {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #94a3b8;
+  word-break: break-word;
+}
+
+.roleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.8);
+  border: 1px solid rgba(30, 41, 59, 0.8);
+}
+
+.roleLabel {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.roleBadge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #67e8f9;
+  background: rgba(34, 211, 238, 0.12);
+  border: 1px solid rgba(34, 211, 238, 0.22);
+}
+
+.logoutButton {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8fafc;
+  background: linear-gradient(135deg, #0f172a 0%, #16233d 100%);
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  transition: all 0.2s ease;
+}
+
+.logoutButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(34, 211, 238, 0.4);
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(30, 41, 59, 0.9);
+  }
+}

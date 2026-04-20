@@ -22,14 +22,14 @@ export default function LoginPage() {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`,
         {
           method: "POST",
           headers: {
@@ -46,6 +46,26 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("access_token", data.access_token);
+
+      const meResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${data.access_token}`,
+          },
+        }
+      );
+
+      const meData = await meResponse.json();
+
+      if (!meResponse.ok) {
+        throw new Error(meData.detail || "Failed to load user profile");
+      }
+
+      localStorage.setItem("user", JSON.stringify(meData));
+
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

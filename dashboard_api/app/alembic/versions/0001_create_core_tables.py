@@ -7,6 +7,7 @@ Create Date: 2026-04-09
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 
 revision = "0001"
 down_revision = None
@@ -54,6 +55,8 @@ def upgrade():
         sa.Column("risk_score", sa.Float()),
         sa.Column("risk_level", sa.String(20)),
         sa.Column("model_type", sa.String(50), server_default="edge"),
+        sa.Column("features_used", JSONB(), nullable=True),
+        sa.Column("top_factors", JSONB(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
 

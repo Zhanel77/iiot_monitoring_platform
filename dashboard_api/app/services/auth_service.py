@@ -7,7 +7,7 @@ class AuthService:
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
 
-    def register(self, *, email: str, full_name: str, password: str) -> User:
+    def register(self, *, email: str, full_name: str, password: str, role: str) -> User:
         existing = self.user_repo.get_by_email(email)
         if existing:
             raise ValueError("User with this email already exists")
@@ -16,7 +16,7 @@ class AuthService:
             email=email,
             full_name=full_name,
             password_hash=hash_password(password),
-            role="viewer",
+            role=role if role else "viewer",
         )
 
     def login(self, *, email: str, password: str) -> tuple[str, User]:
