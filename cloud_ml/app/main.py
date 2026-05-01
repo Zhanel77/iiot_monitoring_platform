@@ -9,7 +9,7 @@ from app.config import (
     SHAP_ONLY_FOR_HIGH_RISK,
     TOP_K_FEATURES,
 )
-from app.explainer import CloudShapExplainer
+from app.shap_explainer import CloudShapExplainer
 from app.predictor import CloudPredictor
 from app.preprocessing import CloudPreprocessor
 from app.schemas import CloudPredictRequest, CloudPredictResponse, ShapFactor
