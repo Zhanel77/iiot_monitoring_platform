@@ -11,7 +11,22 @@ from app.logger import setup_logger
 from app.postgres_writer import PostgresWriter
 
 
+
 logger = setup_logger()
+
+def build_explanation(top_factors: list[dict]) -> str:
+    reasons = []
+
+    for f in top_factors[:3]:
+        name = f["feature"]
+        value = f["feature_value"]
+
+        if f["effect"] == "increase":
+            reasons.append(f"{name} ({value}) increased risk")
+        else:
+            reasons.append(f"{name} ({value}) decreased risk")
+
+    return "; ".join(reasons)
 
 
 class MQTTConsumer:
@@ -77,17 +92,17 @@ class MQTTConsumer:
             self.influx.write_edge_event(event)
 
             if self._should_create_alert(event):
+                top_factors = cloud_result.get("top_factors", [])
+                explanation = build_explanation(top_factors) if top_factors else "No SHAP explanation available"
+
                 self.pg.insert_alert(
                     device_id=event["device_id"],
                     machine_id=event["machine_id"],
-                    prediction_id=edge_prediction_id,
-                    alert_type="failure_risk",
-                    severity=self._severity_from_score(event["risk_score"]),
-                    message=(
-                        f"High risk detected for {event['device_id']} "
-                        f"(score={event['risk_score']:.4f}, level={event['risk_level']}, model=edge)"
-                    ),
-                )
+                    prediction_id=cloud_prediction_id,
+                    alert_type="cloud_shap_risk",
+                    severity=self._severity_from_score(float(cloud_result["risk_score"])),
+                    message=f"Cloud AI detected high risk for Machine {event['machine_id']}. {explanation}",
+                ),
                 logger.warning(
                     "Edge alert created | device_id=%s machine_id=%s risk_score=%.4f",
                     event["device_id"],
@@ -106,7 +121,9 @@ class MQTTConsumer:
                         scenario=event.get("scenario"),
                         prediction=int(cloud_result["prediction"]),
                         risk_score=float(cloud_result["risk_score"]),
-                        risk_level=str(cloud_result["risk_level"]),
+                        risk_level=str(cloud_result["prediction_label"]),
+                        features_used=cloud_result.get("features_used"),
+                        top_factors=cloud_result.get("top_factors"),
                         model_type="cloud",
                     )
 
@@ -115,7 +132,7 @@ class MQTTConsumer:
                             **event,
                             "prediction": int(cloud_result["prediction"]),
                             "risk_score": float(cloud_result["risk_score"]),
-                            "risk_level": str(cloud_result["risk_level"]),
+                            "risk_level": str(cloud_result["prediction_label"]),
                             "model_type": "cloud",
                         }
                     )
@@ -130,7 +147,7 @@ class MQTTConsumer:
                             message=(
                                 f"High risk detected for {event['device_id']} "
                                 f"(score={float(cloud_result['risk_score']):.4f}, "
-                                f"level={cloud_result['risk_level']}, model=cloud)"
+                                f"level={cloud_result['prediction_label']}, model=cloud)"
                             ),
                         )
                         logger.warning(
@@ -146,7 +163,7 @@ class MQTTConsumer:
                         event["device_id"],
                         int(cloud_result["prediction"]),
                         float(cloud_result["risk_score"]),
-                        str(cloud_result["risk_level"]),
+                        str(cloud_result["prediction_label"]),
                     )
 
             logger.info(
@@ -208,13 +225,11 @@ class MQTTConsumer:
 
     def _build_cloud_payload(self, event: dict) -> dict:
         return {
-            "Air temperature [K]": event["air_temperature_k"],
-            "Process temperature [K]": event["process_temperature_k"],
-            "Rotational speed [rpm]": event["rotational_speed_rpm"],
-            "Torque [Nm]": event["torque_nm"],
-            "Tool wear [min]": event["tool_wear_min"],
-            "temp_diff": event["temp_diff"],
-            "power_kw": event["power_kw"],
+            "air_temperature_k": event["air_temperature_k"],
+            "process_temperature_k": event["process_temperature_k"],
+            "rotational_speed_rpm": event["rotational_speed_rpm"],
+            "torque_nm": event["torque_nm"],
+            "tool_wear_min": event["tool_wear_min"],
         }
 
     def _get_cloud_prediction(self, event: dict) -> dict | None:
@@ -229,7 +244,7 @@ class MQTTConsumer:
             response.raise_for_status()
 
             result = response.json()
-            required = {"prediction", "risk_score", "risk_level"}
+            required = {"prediction", "risk_score", "prediction_label"}
             if not required.issubset(result):
                 logger.error("Invalid cloud API response | body=%s", result)
                 return None

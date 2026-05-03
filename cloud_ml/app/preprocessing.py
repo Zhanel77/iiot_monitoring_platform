@@ -1,12 +1,16 @@
 import json
 import math
 from pathlib import Path
+from app.feature_pipeline import sanitize_feature_name
 
 
 class CloudPreprocessor:
     def __init__(self, feature_list_path: Path, normalization_config_path: Path):
         with open(feature_list_path, "r", encoding="utf-8") as f:
-            self.feature_list = json.load(f)
+            self.feature_list = [
+                    sanitize_feature_name(f) 
+                    for f in json.load(f)
+                ]
 
         with open(normalization_config_path, "r", encoding="utf-8") as f:
             self.normalization_config = json.load(f)
@@ -17,7 +21,10 @@ class CloudPreprocessor:
 
     @staticmethod
     def _sanitize_feature_names(row: dict) -> dict:
-        return {str(k).strip(): v for k, v in row.items()}
+        return {
+            sanitize_feature_name(str(k).strip()): v
+            for k, v in row.items()
+        }
 
     @staticmethod
     def _engineer_features(raw: dict) -> dict:

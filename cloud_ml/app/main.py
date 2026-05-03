@@ -22,7 +22,10 @@ preprocessor = CloudPreprocessor(
     normalization_config_path=NORMALIZATION_CONFIG_PATH,
 )
 
-predictor = CloudPredictor(model_path=MODEL_PATH)
+predictor = CloudPredictor(
+    model_path=MODEL_PATH,
+    feature_names=preprocessor.feature_list,
+)
 
 explainer = CloudShapExplainer(
     model_path=MODEL_PATH,

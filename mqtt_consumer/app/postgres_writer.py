@@ -1,7 +1,7 @@
 from typing import Optional
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, Json
 
 from app.config import Settings
 
@@ -39,6 +39,8 @@ class PostgresWriter:
         prediction: int,
         risk_score: float,
         risk_level: str,
+        features_used=None,
+        top_factors=None,
         model_type: str = "edge",
     ) -> int:
         query = """
@@ -50,10 +52,12 @@ class PostgresWriter:
             scenario,
             prediction,
             risk_score,
+            features_used,
+            top_factors,
             risk_level,
             model_type
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """
         with self.conn.cursor() as cur:
@@ -67,6 +71,8 @@ class PostgresWriter:
                     scenario,
                     prediction,
                     risk_score,
+                    Json(features_used) if features_used is not None else None,
+                    Json(top_factors) if top_factors is not None else None,
                     risk_level,
                     model_type,
                 ),

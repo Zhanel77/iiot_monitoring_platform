@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import pageStyles from "@/components/dashboard-pages/section.module.css";
 import { fetchJson } from "@/components/dashboard-pages/api";
+import { useSearchParams } from "next/navigation";
 
 type ShapFactor = {
   feature?: string;
@@ -26,6 +27,24 @@ export default function AlertsPageContent() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const searchParams = useSearchParams();
+  const alertId = searchParams.get("alertId");
+  const [selectedAlert, setSelectedAlert] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (!apiUrl || !alertId) return;
+
+    const loadAlertDetail = async () => {
+      try {
+        const data = await fetchJson<any>(`${apiUrl}/api/v1/alerts/${alertId}`);
+        setSelectedAlert(data);
+      } catch (err) {
+        console.error("Failed to load alert detail", err);
+      }
+    };
+
+    loadAlertDetail();
+  }, [apiUrl, alertId]);
 
   useEffect(() => {
     if (!apiUrl) {
@@ -73,6 +92,50 @@ export default function AlertsPageContent() {
           Critical and warning events generated from cloud prediction outputs.
         </p>
       </div>
+
+      {selectedAlert && (
+        <div className={pageStyles.card}>
+          <div className={pageStyles.cardTop}>
+            <span className={`${pageStyles.badge} ${pageStyles.badgeCritical}`}>
+              {selectedAlert.severity}
+            </span>
+            <span className={pageStyles.mutedText}>
+              Model: {selectedAlert.model_type || "—"}
+            </span>
+          </div>
+
+          <h3 className={pageStyles.cardTitle}>
+            Alert Details — Machine {selectedAlert.machine_id}
+          </h3>
+
+          <p className={pageStyles.cardText}>{selectedAlert.message}</p>
+
+          <p className={pageStyles.cardText}>
+            Risk score:{" "}
+            {typeof selectedAlert.risk_score === "number"
+              ? (selectedAlert.risk_score * 100).toFixed(1) + "%"
+              : "—"}
+          </p>
+
+          {Array.isArray(selectedAlert.top_factors) &&
+            selectedAlert.top_factors.length > 0 && (
+              <div className={pageStyles.cardText}>
+                <b>SHAP explanation:</b>
+                {selectedAlert.top_factors.map((factor: any, index: number) => (
+                  <div key={index}>
+                    {factor.feature}: {factor.feature_value} — {factor.effect} risk
+                  </div>
+                ))}
+              </div>
+            )}
+
+          {selectedAlert.features_used && (
+            <pre className={pageStyles.cardText}>
+              {JSON.stringify(selectedAlert.features_used, null, 2)}
+            </pre>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className={pageStyles.stateBox}>Loading alerts...</div>
