@@ -334,14 +334,14 @@ export default function DashboardMain() {
         <div className={styles.notificationsCard}>
           <div className={styles.cardHeader}>
             <div>
-              <h3 className={styles.cardTitle}>Cloud Notifications</h3>
+              <h3 className={styles.cardTitle}>Active Machine Alerts</h3>
               <p className={styles.cardSubtitle}>Generated from predictions and SHAP</p>
             </div>
           </div>
 
           <div className={styles.notificationList}>
             {notifications.length === 0 ? (
-              <p className={styles.emptyText}>No cloud notifications.</p>
+              <p className={styles.emptyText}>No notifications.</p>
             ) : (
               notifications.map((item, index) => (
                 <div key={index} className={styles.notificationItem}>
@@ -368,7 +368,7 @@ export default function DashboardMain() {
         <div className={styles.panel}>
           <div className={styles.cardHeader}>
             <div>
-              <h3 className={styles.cardTitle}>Recent Predictions</h3>
+              <h3 className={styles.cardTitle}>Latest Machine Status</h3>
               <p className={styles.cardSubtitle}>Latest results from devices</p>
             </div>
           </div>
@@ -417,7 +417,7 @@ export default function DashboardMain() {
         <div className={styles.panel}>
           <div className={styles.cardHeader}>
             <div>
-              <h3 className={styles.cardTitle}>SHAP Explanations</h3>
+              <h3 className={styles.cardTitle}>Root Cause Analysis</h3>
               <p className={styles.cardSubtitle}>Top factors from latest explained prediction</p>
             </div>
           </div>
@@ -435,7 +435,7 @@ export default function DashboardMain() {
 
           <div className={styles.shapList}>
             {shapFactors.length === 0 ? (
-              <p className={styles.emptyText}>No SHAP factors found in prediction data.</p>
+              <p className={styles.emptyText}>No factors found in prediction data.</p>
             ) : (
               shapFactors.map((item, index) => (
                 <div key={index} className={styles.shapCard}>

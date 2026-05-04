@@ -86,8 +86,8 @@ export default function AlertsPageContent() {
   return (
     <main className={pageStyles.page}>
       <div className={pageStyles.header}>
-        <p className={pageStyles.kicker}>Cloud Layer</p>
-        <h1 className={pageStyles.title}>Cloud Alerts</h1>
+        <p className={pageStyles.kicker}>Layer</p>
+        <h1 className={pageStyles.title}>Alerts</h1>
         <p className={pageStyles.subtitle}>
           Critical and warning events generated from cloud prediction outputs.
         </p>
@@ -117,6 +117,118 @@ export default function AlertsPageContent() {
               : "—"}
           </p>
 
+          {Array.isArray(selectedAlert?.top_factors) &&
+          selectedAlert.top_factors.length > 0 ? (
+            <section style={{ marginTop: 28, display: "grid", gap: 22 }}>
+              <div
+                style={{
+                  padding: 24,
+                  borderRadius: 24,
+                  background: "linear-gradient(135deg, #111827, #07111f)",
+                  border: "1px solid rgba(56, 189, 248, 0.25)",
+                }}
+              >
+                <h2 style={{ marginBottom: 12 }}>Engineer Summary</h2>
+
+                <p style={{ color: "#cbd5e1", fontSize: 18 }}>
+                  The system detected abnormal machine behavior. The main risk contributors are:
+                </p>
+
+                <ul style={{ marginTop: 14, color: "#fda4af", fontSize: 18 }}>
+                  {selectedAlert.top_factors
+                    .filter((f: any) => f.effect === "increase")
+                    .slice(0, 2)
+                    .map((factor: any, index: number) => (
+                      <li key={index}>
+                        {factor.feature.replaceAll("_", " ")} = {factor.feature_value}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+
+              <div
+                style={{
+                  padding: 24,
+                  borderRadius: 24,
+                  background: "#0b1220",
+                  border: "1px solid rgba(148, 163, 184, 0.2)",
+                }}
+              >
+                <h2 style={{ marginBottom: 12 }}>Recommended Actions</h2>
+
+                <ul style={{ color: "#dbeafe", fontSize: 17, lineHeight: 1.8 }}>
+                  {selectedAlert.top_factors.some((f: any) => f.feature === "Tool Wear") && (
+                    <li>Inspect tool condition and consider replacement.</li>
+                  )}
+
+                  {selectedAlert.top_factors.some((f: any) => f.feature === "Torque Load") && (
+                    <li>Check torque load and inspect drivetrain or mechanical resistance.</li>
+                  )}
+
+                  {selectedAlert.top_factors.some((f: any) => f.feature === "Rotation Speed") && (
+                    <li>Verify rotational speed stability and operating range.</li>
+                  )}
+
+                  {selectedAlert.top_factors.some((f: any) => f.feature === "Air Temperature") && (
+                    <li>Check surrounding temperature and cooling conditions.</li>
+                  )}
+
+                  <li>Review the latest sensor readings before stopping the machine.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h2 style={{ marginBottom: 16 }}>Technical Details</h2>
+
+                <div style={{ display: "grid", gap: 14 }}>
+                  {selectedAlert.top_factors.map((factor: any, index: number) => {
+                    const isIncrease = factor.effect === "increase";
+                    const absValue = Math.abs(Number(factor.shap_value || 0));
+                    const width = Math.min(100, absValue * 35);
+
+                    return (
+                      <div
+                        key={index}
+                        style={{
+                          padding: 18,
+                          borderRadius: 20,
+                          background: "#070d1f",
+                          border: "1px solid rgba(148, 163, 184, 0.18)",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <b>{factor.feature.replaceAll("_", " ")}</b>
+                          <span style={{ color: isIncrease ? "#fb7185" : "#60a5fa" }}>
+                            {isIncrease ? "+" : ""}
+                            {Number(factor.shap_value).toFixed(3)}
+                          </span>
+                        </div>
+
+                        <p style={{ color: "#9fb4d8" }}>
+                          Value: {factor.feature_value} ·{" "}
+                          {isIncrease ? "increases failure risk" : "reduces failure risk"}
+                        </p>
+
+                        <div style={{ height: 8, background: "#1f2937", borderRadius: 999 }}>
+                          <div
+                            style={{
+                              width: `${width}%`,
+                              height: "100%",
+                              background: isIncrease ? "#fb7185" : "#60a5fa",
+                              borderRadius: 999,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          ) : (
+            <p>No SHAP explanation available</p>
+          )}
+
           {Array.isArray(selectedAlert.top_factors) &&
             selectedAlert.top_factors.length > 0 && (
               <div className={pageStyles.cardText}>
@@ -137,6 +249,8 @@ export default function AlertsPageContent() {
         </div>
       )}
 
+      {!selectedAlert && (
+      <>
       {loading ? (
         <div className={pageStyles.stateBox}>Loading alerts...</div>
       ) : error ? (
@@ -192,6 +306,8 @@ export default function AlertsPageContent() {
             );
           })}
         </div>
+      )}
+      </>
       )}
     </main>
   );

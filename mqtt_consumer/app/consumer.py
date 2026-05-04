@@ -92,17 +92,18 @@ class MQTTConsumer:
             self.influx.write_edge_event(event)
 
             if self._should_create_alert(event):
-                top_factors = cloud_result.get("top_factors", [])
-                explanation = build_explanation(top_factors) if top_factors else "No SHAP explanation available"
-
                 self.pg.insert_alert(
                     device_id=event["device_id"],
                     machine_id=event["machine_id"],
-                    prediction_id=cloud_prediction_id,
-                    alert_type="cloud_shap_risk",
-                    severity=self._severity_from_score(float(cloud_result["risk_score"])),
-                    message=f"Cloud AI detected high risk for Machine {event['machine_id']}. {explanation}",
-                ),
+                    prediction_id=edge_prediction_id,
+                    alert_type="edge_fast_alert",
+                    severity=self._severity_from_score(event["risk_score"]),
+                    message=(
+                        f"Edge detected high risk for {event['device_id']} "
+                        f"(score={event['risk_score']:.4f}, level={event['risk_level']}, model=edge)"
+                    ),
+                )
+
                 logger.warning(
                     "Edge alert created | device_id=%s machine_id=%s risk_score=%.4f",
                     event["device_id"],
@@ -138,16 +139,19 @@ class MQTTConsumer:
                     )
 
                     if self._should_create_alert_from_result(cloud_result):
+                        top_factors = cloud_result.get("top_factors", [])
+                        explanation = build_explanation(top_factors) if top_factors else "No SHAP explanation available"
+
                         self.pg.insert_alert(
                             device_id=event["device_id"],
                             machine_id=event["machine_id"],
                             prediction_id=cloud_prediction_id,
-                            alert_type="failure_risk",
+                            alert_type="cloud_shap_risk",
                             severity=self._severity_from_score(float(cloud_result["risk_score"])),
                             message=(
-                                f"High risk detected for {event['device_id']} "
-                                f"(score={float(cloud_result['risk_score']):.4f}, "
-                                f"level={cloud_result['prediction_label']}, model=cloud)"
+                                f"Cloud AI detected high risk for Machine {event['machine_id']}. "
+                                f"Risk score={float(cloud_result['risk_score']):.4f}. "
+                                f"Explanation: {explanation}"
                             ),
                         )
                         logger.warning(
@@ -266,13 +270,13 @@ class MQTTConsumer:
         )
 
     def _should_create_alert_from_result(self, result: dict) -> bool:
-        risk_level = str(result.get("risk_level", "")).upper()
+        risk_level = str(result.get("risk_level") or result.get("prediction_label") or "").upper()
         risk_score = float(result.get("risk_score", 0.0))
         prediction = int(result.get("prediction", 0))
 
         return (
             prediction == 1
-            or risk_level in {"HIGH", "CRITICAL", "HIGH_RISK"}
+            or risk_level in {"HIGH", "CRITICAL", "HIGH_RISK", "WARNING"}
             or risk_score >= Settings.ALERT_RISK_THRESHOLD
         )
 

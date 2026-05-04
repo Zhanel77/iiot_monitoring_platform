@@ -10,30 +10,34 @@ export function AlertNotifications() {
 
   useEffect(() => {
     const interval = setInterval(async () => {
-      const res = await fetch(`${API_URL}/api/v1/alerts/open`, {
-        cache: "no-store",
-      });
+      try {
+        const res = await fetch(`${API_URL}/api/v1/alerts/open`, {
+          cache: "no-store",
+        });
 
-      const alerts = await res.json();
-      const cloudAlerts = alerts.filter((alert: any) => alert.model_type === "cloud");
-      const newest = cloudAlerts[0];
+        const alerts = await res.json();
 
-      alerts.forEach((alert: any) => {
-        if (newest && !shown.current.has(newest.id)) {
-            shown.current.add(newest.id);
+        if (!Array.isArray(alerts) || alerts.length === 0) return;
 
-            notifications.show({
-                title: `⚠ ${newest.severity?.toUpperCase()}: Machine ${newest.machine_id}`,
-                message: "Click to view explanation",
-                color: newest.severity === "critical" ? "red" : "yellow",
-                autoClose: 8000,
-                withBorder: true,
-                onClick: () => {
-                window.location.href = `/dashboard/alerts?alertId=${newest.id}`;
-                },
-            });
+        const newest = alerts[0];
+
+        if (!shown.current.has(newest.id)) {
+          shown.current.add(newest.id);
+
+          notifications.show({
+            title: `⚠ ${newest.severity?.toUpperCase() ?? "ALERT"}: Machine ${newest.machine_id}`,
+            message: "Edge detected high risk. Click to view cloud SHAP explanation.",
+            color: newest.severity === "critical" ? "red" : "orange",
+            autoClose: 8000,
+            withBorder: true,
+            onClick: () => {
+              window.location.href = `/dashboard/alerts?alertId=${newest.id}`;
+            },
+          });
         }
-      });
+      } catch (error) {
+        console.error("Failed to load alerts", error);
+      }
     }, 5000);
 
     return () => clearInterval(interval);
