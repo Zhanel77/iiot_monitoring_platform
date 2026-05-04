@@ -37,5 +37,20 @@ class InfluxWriter:
 
         self.write_api.write(bucket=self.bucket, org=self.org, record=point)
 
+    def write_cloud_event(self, event: dict) -> None:
+        point = (
+            Point("cloud_predictions")
+            .tag("device_id", str(event["device_id"]))
+            .tag("machine_id", str(event["machine_id"]))
+            .tag("model_type", "cloud")
+            .tag("source", str(event.get("source", "unknown")))
+            .tag("scenario", str(event.get("scenario", "unknown")))
+            .field("prediction", int(event["prediction"]))
+            .field("risk_score", float(event["risk_score"]))
+            .time(event["timestamp"], WritePrecision.NS)
+        )
+
+        self.write_api.write(bucket=self.bucket, org=self.org, record=point)
+
     def close(self) -> None:
         self.client.close()
