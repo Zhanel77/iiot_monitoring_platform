@@ -22,7 +22,11 @@ class DeviceRepository:
         return device
     
     def get_by_machine_id(self, machine_id: int):
-        return self.db.query(Device).filter(Device.machine_id == machine_id).first()
+        return (
+            self.db.query(Device)
+            .filter(Device.machine_id == machine_id)
+            .first()
+        )
 
 
     def get_by_device_id(self, device_id: str):
