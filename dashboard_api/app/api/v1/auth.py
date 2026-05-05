@@ -13,13 +13,31 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+def register(
+    payload: RegisterRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user), 
+):
+
+    if current_user.role == "viewer":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions",
+        )
+
+    if current_user.role == "operator" and payload.role != "viewer":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operator can create only viewer users",
+        )
+
     service = AuthService(UserRepository(db))
     try:
         user = service.register(
             email=payload.email,
             full_name=payload.full_name,
             password=payload.password,
+            role=payload.role,  
         )
         return user
     except ValueError as exc:

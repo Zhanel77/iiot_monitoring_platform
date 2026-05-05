@@ -8,6 +8,7 @@ import xgboost as xgb
 
 from app.core.config import settings
 from app.services.weather_service import WeatherService
+from app.services.shap_explainer import ShapExplainer
 
 
 def normalize_value(value: float, rule: Dict[str, Any]) -> float:
@@ -65,6 +66,7 @@ class CloudPredictor:
 
         # Подготовка безопасных имен фич (если нужно для DMatrix)
         self.safe_features = [sanitize_feature_name(f) for f in self.features]
+        self.shap_explainer = ShapExplainer()
 
         # Инициализация weather service с защитой от ошибок
         self.weather_service = None
@@ -360,11 +362,30 @@ class CloudPredictor:
         X = np.array([[row[f] for f in self.safe_features]], dtype=float)
 
         dmatrix = xgb.DMatrix(X, feature_names=self.safe_features)
-
         prob = float(self.model.predict(dmatrix)[0])
+
+        prediction = int(prob > 0.5)
+        risk_level = self._level(prob)
+
+        top_factors = self.shap_explainer.explain(
+            normalized_features=normalized,
+            raw_features=data,
+            top_k=5,
+        )
 
         return {
             "risk_score": prob,
-            "prediction": int(prob > 0.5),
-            "risk_level": self._risk_level(prob),
+            "prediction": prediction,
+            "risk_level": risk_level,
+            "features_used": data,
+            "top_factors": top_factors,
         }
+
+    def _level(self, score: float):
+        if score > 0.8:
+            return "CRITICAL"
+        if score > 0.6:
+            return "HIGH"
+        if score > 0.4:
+            return "WARNING"
+        return "NORMAL"
