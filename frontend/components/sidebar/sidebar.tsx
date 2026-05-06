@@ -20,28 +20,28 @@ export default function Sidebar({ user }: SidebarProps) {
   const permissions = getRolePermissions(user?.role);
 
   const menuItems = [
-    permissions.canViewDashboard
-      ? { label: "Dashboard", href: "/dashboard", icon: "▣" }
-      : null,
-    permissions.canViewDevices
-      ? { label: "Devices", href: "/dashboard/devices", icon: "⌘" }
-      : null,
-    permissions.canViewPredictions
-      ? { label: "Predictions", href: "/dashboard/predictions", icon: "◔" }
-      : null,
-    permissions.canViewAlerts
-      ? { label: "Cloud Alerts", href: "/dashboard/alerts", icon: "⚠" }
-      : null,
-    permissions.canRegisterUsers
-      ? { label: "Register User", href: "/dashboard/register", icon: "✚" }
-      : null,
-    permissions.canManageUsers
-      ? { label: "Users", href: "/dashboard/users", icon: "☰" }
-      : null,
-    permissions.canViewProfile
-      ? { label: "Profile", href: "/dashboard/profile", icon: "◉" }
-      : null,
-  ].filter(Boolean) as { label: string; href: string; icon: string }[];
+  permissions.canViewDashboard
+    ? { label: "Control Center", href: "/dashboard", icon: "▣" }
+    : null,
+  permissions.canViewDevices
+    ? { label: "Machines", href: "/dashboard/devices", icon: "⌘" }
+    : null,
+  permissions.canViewPredictions
+    ? { label: "Telemetry Events", href: "/dashboard/predictions", icon: "◔" }
+    : null,
+  permissions.canViewAlerts
+    ? { label: "Alarm Center", href: "/dashboard/alerts", icon: "⚠" }
+    : null,
+  permissions.canRegisterUsers
+    ? { label: "Register Operator", href: "/dashboard/register", icon: "✚" }
+    : null,
+  permissions.canManageUsers
+    ? { label: "Operators", href: "/dashboard/users", icon: "☰" }
+    : null,
+  permissions.canViewProfile
+    ? { label: "Operator Console", href: "/dashboard/profile", icon: "◉" }
+    : null,
+].filter(Boolean) as { label: string; href: string; icon: string }[];
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
