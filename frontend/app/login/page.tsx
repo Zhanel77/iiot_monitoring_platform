@@ -105,9 +105,7 @@ export default function LoginPage() {
               className={styles.input}
             />
           </div>
-
           {error && <div className={styles.error}>{error}</div>}
-
           <button type="submit" disabled={loading} className={styles.button}>
             {loading ? "Signing in..." : "Sign in"}
           </button>
