@@ -272,6 +272,132 @@
   border: 1px solid rgba(34, 211, 238, 0.24);
 }
 
+.machineGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.machineCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: 22px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.92));
+  border: 1px solid rgba(30, 41, 59, 0.95);
+  transition: transform 0.2s ease;
+}
+
+.machineCard:hover {
+  transform: translateY(-2px);
+}
+
+.machineGlowNormal::before,
+.machineGlowWarning::before,
+.machineGlowCritical::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.machineGlowNormal::before {
+  background: radial-gradient(circle at top right, #22c55e, transparent 60%);
+}
+
+.machineGlowWarning::before {
+  background: radial-gradient(circle at top right, #f59e0b, transparent 60%);
+}
+
+.machineGlowCritical::before {
+  background: radial-gradient(circle at top right, #ef4444, transparent 60%);
+}
+
+.machineHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.machineName {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.machineStatus {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.machineStatusNormal {
+  color: #4ade80;
+}
+
+.machineStatusWarning {
+  color: #fbbf24;
+}
+
+.machineStatusCritical {
+  color: #fb7185;
+}
+
+.machineTelemetry {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.telemetryCard {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.7);
+  border: 1px solid rgba(30, 41, 59, 0.85);
+}
+
+.telemetryLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.telemetryValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.machineAction {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(30, 41, 59, 0.85);
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+@media (max-width: 1200px) {
+  .machineGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .machineGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .grid {
     grid-template-columns: 1fr;

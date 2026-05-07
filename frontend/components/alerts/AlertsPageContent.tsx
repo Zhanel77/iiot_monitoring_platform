@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import pageStyles from "@/components/dashboard-pages/section.module.css";
 import { fetchJson } from "@/components/dashboard-pages/api";
-import { useSearchParams } from "next/navigation";
 
-type ShapFactor = {
+type FailureFactor = {
   feature?: string;
+  feature_value?: number | string;
   shap_value?: number;
   effect?: string;
 };
 
-type Prediction = {
+type AlarmEvent = {
   id: number;
   device_id?: string;
   machine_id?: number;
@@ -19,32 +20,36 @@ type Prediction = {
   risk_score?: number;
   event_time?: string;
   created_at?: string;
-  top_factors?: ShapFactor[];
+  top_factors?: FailureFactor[];
+};
+
+type AlarmDetail = {
+  id: number;
+  device_id?: string;
+  machine_id?: number;
+  alert_type?: string;
+  severity?: string;
+  message?: string;
+  status?: string;
+  created_at?: string;
+  prediction_id?: number;
+  risk_score?: number;
+  risk_level?: string;
+  model_type?: string;
+  features_used?: Record<string, unknown> | null;
+  top_factors?: FailureFactor[] | null;
 };
 
 export default function AlertsPageContent() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const searchParams = useSearchParams();
   const alertId = searchParams.get("alertId");
-  const [selectedAlert, setSelectedAlert] = useState<any | null>(null);
 
-  useEffect(() => {
-    if (!apiUrl || !alertId) return;
-
-    const loadAlertDetail = async () => {
-      try {
-        const data = await fetchJson<any>(`${apiUrl}/api/v1/alerts/${alertId}`);
-        setSelectedAlert(data);
-      } catch (err) {
-        console.error("Failed to load alert detail", err);
-      }
-    };
-
-    loadAlertDetail();
-  }, [apiUrl, alertId]);
+  const [events, setEvents] = useState<AlarmEvent[]>([]);
+  const [selectedAlarm, setSelectedAlarm] = useState<AlarmDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!apiUrl) {
@@ -55,22 +60,45 @@ export default function AlertsPageContent() {
 
     const load = async () => {
       try {
-        const data = await fetchJson<Prediction[]>(`${apiUrl}/api/v1/predictions`);
-        setPredictions(Array.isArray(data) ? data : []);
+        const data = await fetchJson<AlarmEvent[]>(`${apiUrl}/api/v1/predictions`);
+        setEvents(Array.isArray(data) ? data : []);
         setError("");
       } catch (err) {
         const errorObj = err as Error;
-        setError(errorObj.message || "Failed to load alerts");
+        setError(errorObj.message || "Failed to load alarm events");
       } finally {
         setLoading(false);
       }
     };
 
     load();
+    const interval = setInterval(load, 15000);
+    return () => clearInterval(interval);
   }, [apiUrl]);
 
-  const alerts = useMemo(() => {
-    return [...predictions]
+  useEffect(() => {
+    if (!apiUrl || !alertId) {
+      setSelectedAlarm(null);
+      return;
+    }
+
+    const loadDetail = async () => {
+      try {
+        setDetailLoading(true);
+        const data = await fetchJson<AlarmDetail>(`${apiUrl}/api/v1/alerts/${alertId}`);
+        setSelectedAlarm(data);
+      } catch (err) {
+        console.error("Failed to load alarm detail", err);
+      } finally {
+        setDetailLoading(false);
+      }
+    };
+
+    loadDetail();
+  }, [apiUrl, alertId]);
+
+  const alarms = useMemo(() => {
+    return [...events]
       .sort((a, b) => {
         const aTime = new Date(a.event_time || a.created_at || 0).getTime();
         const bTime = new Date(b.event_time || b.created_at || 0).getTime();
@@ -80,45 +108,80 @@ export default function AlertsPageContent() {
         const level = item.risk_level?.toUpperCase();
         return level === "CRITICAL" || level === "WARNING";
       })
-      .slice(0, 10);
-  }, [predictions]);
+      .slice(0, 12);
+  }, [events]);
+
+  const stats = useMemo(() => {
+    return {
+      total: alarms.length,
+      critical: alarms.filter((item) => item.risk_level?.toUpperCase() === "CRITICAL").length,
+      warning: alarms.filter((item) => item.risk_level?.toUpperCase() === "WARNING").length,
+    };
+  }, [alarms]);
+
+  const factors = selectedAlarm?.top_factors || [];
+  const increasingFactors = factors.filter((item) => item.effect === "increase").slice(0, 2);
 
   return (
     <main className={pageStyles.page}>
       <div className={pageStyles.header}>
-        <p className={pageStyles.kicker}>Layer</p>
-        <h1 className={pageStyles.title}>Alerts</h1>
+        <p className={pageStyles.kicker}>Plant Safety</p>
+        <h1 className={pageStyles.title}>Alarm Center</h1>
         <p className={pageStyles.subtitle}>
-          Critical and warning events generated from cloud prediction outputs.
+          Active warning and critical machine states with operator actions and failure cause explanation.
         </p>
       </div>
 
-      {selectedAlert && (
+      {selectedAlarm && (
         <div className={pageStyles.card}>
           <div className={pageStyles.cardTop}>
-            <span className={`${pageStyles.badge} ${pageStyles.badgeCritical}`}>
-              {selectedAlert.severity}
+            <span
+              className={`${pageStyles.badge} ${
+                selectedAlarm.risk_level?.toUpperCase() === "CRITICAL" ||
+                selectedAlarm.severity?.toUpperCase() === "CRITICAL"
+                  ? pageStyles.badgeCritical
+                  : pageStyles.badgeWarning
+              }`}
+            >
+              {selectedAlarm.risk_level || selectedAlarm.severity || "ALARM"}
             </span>
+
             <span className={pageStyles.mutedText}>
-              Model: {selectedAlert.model_type || "—"}
+              Status: {selectedAlarm.status || "open"}
             </span>
           </div>
 
           <h3 className={pageStyles.cardTitle}>
-            Alert Details — Machine {selectedAlert.machine_id}
+            Machine {selectedAlarm.machine_id} Alarm Detail
           </h3>
 
-          <p className={pageStyles.cardText}>{selectedAlert.message}</p>
-
           <p className={pageStyles.cardText}>
-            Risk score:{" "}
-            {typeof selectedAlert.risk_score === "number"
-              ? (selectedAlert.risk_score * 100).toFixed(1) + "%"
-              : "—"}
+            {selectedAlarm.message || "Abnormal machine behavior detected."}
           </p>
 
-          {Array.isArray(selectedAlert?.top_factors) &&
-          selectedAlert.top_factors.length > 0 ? (
+          <div className={pageStyles.grid}>
+            <div className={pageStyles.card}>
+              <p className={pageStyles.cardLabel}>Risk Level</p>
+              <h3 className={pageStyles.cardTitle}>
+                {selectedAlarm.risk_level || selectedAlarm.severity || "—"}
+              </h3>
+              <p className={pageStyles.cardText}>Current alarm classification</p>
+            </div>
+
+            <div className={pageStyles.card}>
+              <p className={pageStyles.cardLabel}>Risk Score</p>
+              <h3 className={pageStyles.cardTitle}>
+                {typeof selectedAlarm.risk_score === "number"
+                  ? (selectedAlarm.risk_score * 100).toFixed(1) + "%"
+                  : "—"}
+              </h3>
+              <p className={pageStyles.cardText}>Estimated machine failure risk</p>
+            </div>
+          </div>
+
+          {detailLoading ? (
+            <div className={pageStyles.stateBox}>Loading alarm explanation...</div>
+          ) : factors.length > 0 ? (
             <section style={{ marginTop: 28, display: "grid", gap: 22 }}>
               <div
                 style={{
@@ -128,21 +191,22 @@ export default function AlertsPageContent() {
                   border: "1px solid rgba(56, 189, 248, 0.25)",
                 }}
               >
-                <h2 style={{ marginBottom: 12 }}>Engineer Summary</h2>
+                <h2 style={{ marginBottom: 12, color: "#f8fafc" }}>Engineer Summary</h2>
 
                 <p style={{ color: "#cbd5e1", fontSize: 18 }}>
-                  The system detected abnormal machine behavior. The main risk contributors are:
+                  The alarm is mainly related to the following operating parameters:
                 </p>
 
                 <ul style={{ marginTop: 14, color: "#fda4af", fontSize: 18 }}>
-                  {selectedAlert.top_factors
-                    .filter((f: any) => f.effect === "increase")
-                    .slice(0, 2)
-                    .map((factor: any, index: number) => (
+                  {increasingFactors.length > 0 ? (
+                    increasingFactors.map((factor, index) => (
                       <li key={index}>
-                        {factor.feature.replaceAll("_", " ")} = {factor.feature_value}
+                        {formatFeatureName(factor.feature)} = {factor.feature_value}
                       </li>
-                    ))}
+                    ))
+                  ) : (
+                    <li>No strong increasing factor found.</li>
+                  )}
                 </ul>
               </div>
 
@@ -154,23 +218,23 @@ export default function AlertsPageContent() {
                   border: "1px solid rgba(148, 163, 184, 0.2)",
                 }}
               >
-                <h2 style={{ marginBottom: 12 }}>Recommended Actions</h2>
+                <h2 style={{ marginBottom: 12, color: "#f8fafc" }}>Recommended Operator Actions</h2>
 
                 <ul style={{ color: "#dbeafe", fontSize: 17, lineHeight: 1.8 }}>
-                  {selectedAlert.top_factors.some((f: any) => f.feature === "Tool Wear") && (
+                  {hasFactor(factors, "Tool_wear_min") && (
                     <li>Inspect tool condition and consider replacement.</li>
                   )}
 
-                  {selectedAlert.top_factors.some((f: any) => f.feature === "Torque Load") && (
+                  {hasFactor(factors, "Torque_Nm") && (
                     <li>Check torque load and inspect drivetrain or mechanical resistance.</li>
                   )}
 
-                  {selectedAlert.top_factors.some((f: any) => f.feature === "Rotation Speed") && (
+                  {hasFactor(factors, "Rotational_speed_rpm") && (
                     <li>Verify rotational speed stability and operating range.</li>
                   )}
 
-                  {selectedAlert.top_factors.some((f: any) => f.feature === "Air Temperature") && (
-                    <li>Check surrounding temperature and cooling conditions.</li>
+                  {hasFactor(factors, "Air_temperature_K") && (
+                    <li>Check ambient temperature and cooling conditions.</li>
                   )}
 
                   <li>Review the latest sensor readings before stopping the machine.</li>
@@ -178,10 +242,10 @@ export default function AlertsPageContent() {
               </div>
 
               <div>
-                <h2 style={{ marginBottom: 16 }}>Technical Details</h2>
+                <h2 style={{ marginBottom: 16, color: "#f8fafc" }}>Technical Failure Factors</h2>
 
                 <div style={{ display: "grid", gap: 14 }}>
-                  {selectedAlert.top_factors.map((factor: any, index: number) => {
+                  {factors.map((factor, index) => {
                     const isIncrease = factor.effect === "increase";
                     const absValue = Math.abs(Number(factor.shap_value || 0));
                     const width = Math.min(100, absValue * 35);
@@ -197,16 +261,20 @@ export default function AlertsPageContent() {
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <b>{factor.feature.replaceAll("_", " ")}</b>
+                          <b>{formatFeatureName(factor.feature)}</b>
                           <span style={{ color: isIncrease ? "#fb7185" : "#60a5fa" }}>
                             {isIncrease ? "+" : ""}
-                            {Number(factor.shap_value).toFixed(3)}
+                            {typeof factor.shap_value === "number"
+                              ? factor.shap_value.toFixed(3)
+                              : "—"}
                           </span>
                         </div>
 
                         <p style={{ color: "#9fb4d8" }}>
-                          Value: {factor.feature_value} ·{" "}
-                          {isIncrease ? "increases failure risk" : "reduces failure risk"}
+                          Current value: {factor.feature_value} ·{" "}
+                          {isIncrease
+                            ? "increases failure risk"
+                            : "reduces failure risk"}
                         </p>
 
                         <div style={{ height: 8, background: "#1f2937", borderRadius: 999 }}>
@@ -226,89 +294,113 @@ export default function AlertsPageContent() {
               </div>
             </section>
           ) : (
-            <p>No SHAP explanation available</p>
+            <div className={pageStyles.stateBox}>
+              No failure cause explanation is available for this alarm yet.
+            </div>
           )}
+        </div>
+      )}
 
-          {Array.isArray(selectedAlert.top_factors) &&
-            selectedAlert.top_factors.length > 0 && (
-              <div className={pageStyles.cardText}>
-                <b>SHAP explanation:</b>
-                {selectedAlert.top_factors.map((factor: any, index: number) => (
-                  <div key={index}>
-                    {factor.feature}: {factor.feature_value} — {factor.effect} risk
+      {!selectedAlarm && (
+        <>
+          <div className={pageStyles.grid}>
+            <div className={pageStyles.card}>
+              <p className={pageStyles.cardLabel}>Active Alarms</p>
+              <h3 className={pageStyles.cardTitle}>{stats.total}</h3>
+              <p className={pageStyles.cardText}>Warning and critical machine states</p>
+            </div>
+
+            <div className={pageStyles.card}>
+              <p className={pageStyles.cardLabel}>Critical</p>
+              <h3 className={pageStyles.cardTitle}>{stats.critical}</h3>
+              <p className={pageStyles.cardText}>Immediate inspection required</p>
+            </div>
+
+            <div className={pageStyles.card}>
+              <p className={pageStyles.cardLabel}>Warning</p>
+              <h3 className={pageStyles.cardTitle}>{stats.warning}</h3>
+              <p className={pageStyles.cardText}>Requires operator attention</p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className={pageStyles.stateBox}>Loading alarm center...</div>
+          ) : error ? (
+            <div className={pageStyles.errorBox}>{error}</div>
+          ) : alarms.length === 0 ? (
+            <div className={pageStyles.stateBox}>No active alarms found.</div>
+          ) : (
+            <div className={pageStyles.grid}>
+              {alarms.map((alarm) => {
+                const level = alarm.risk_level?.toUpperCase() || "WARNING";
+
+                return (
+                  <div key={alarm.id} className={pageStyles.card}>
+                    <div className={pageStyles.cardTop}>
+                      <span
+                        className={`${pageStyles.badge} ${
+                          level === "CRITICAL"
+                            ? pageStyles.badgeCritical
+                            : pageStyles.badgeWarning
+                        }`}
+                      >
+                        {level}
+                      </span>
+
+                      <span className={pageStyles.mutedText}>
+                        Risk:{" "}
+                        {typeof alarm.risk_score === "number"
+                          ? alarm.risk_score.toFixed(3)
+                          : "—"}
+                      </span>
+                    </div>
+
+                    <h3 className={pageStyles.cardTitle}>
+                      {alarm.device_id || `Machine ${alarm.machine_id ?? "—"}`}
+                    </h3>
+
+                    <p className={pageStyles.cardText}>
+                      Machine operating state exceeded the safe monitoring threshold.
+                    </p>
+
+                    <p className={pageStyles.cardFooter}>
+                      {formatDate(alarm.event_time || alarm.created_at)}
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
-
-          {selectedAlert.features_used && (
-            <pre className={pageStyles.cardText}>
-              {JSON.stringify(selectedAlert.features_used, null, 2)}
-            </pre>
+                );
+              })}
+            </div>
           )}
-        </div>
-      )}
-
-      {!selectedAlert && (
-      <>
-      {loading ? (
-        <div className={pageStyles.stateBox}>Loading alerts...</div>
-      ) : error ? (
-        <div className={pageStyles.errorBox}>{error}</div>
-      ) : alerts.length === 0 ? (
-        <div className={pageStyles.stateBox}>No active alerts found.</div>
-      ) : (
-        <div className={pageStyles.grid}>
-          {alerts.map((alert) => {
-            const topFactors = Array.isArray(alert.top_factors)
-              ? alert.top_factors.slice(0, 2).map((item) => item.feature).filter(Boolean)
-              : [];
-
-            return (
-              <div key={alert.id} className={pageStyles.card}>
-                <div className={pageStyles.cardTop}>
-                  <span
-                    className={`${pageStyles.badge} ${
-                      alert.risk_level?.toUpperCase() === "CRITICAL"
-                        ? pageStyles.badgeCritical
-                        : pageStyles.badgeWarning
-                    }`}
-                  >
-                    {alert.risk_level}
-                  </span>
-
-                  <span className={pageStyles.mutedText}>
-                    Risk:{" "}
-                    {typeof alert.risk_score === "number"
-                      ? alert.risk_score.toFixed(3)
-                      : "—"}
-                  </span>
-                </div>
-
-                <h3 className={pageStyles.cardTitle}>
-                  {alert.device_id || `Machine ${alert.machine_id ?? "—"}`}
-                </h3>
-
-                <p className={pageStyles.cardText}>
-                  Cloud layer detected abnormal behavior that may require operator attention.
-                </p>
-
-                {topFactors.length > 0 && (
-                  <p className={pageStyles.cardText}>
-                    SHAP insight: {topFactors.join(" and ")} are the top factors.
-                  </p>
-                )}
-
-                <p className={pageStyles.cardFooter}>
-                  {alert.event_time || alert.created_at || "—"}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      </>
+        </>
       )}
     </main>
   );
+}
+
+function hasFactor(factors: FailureFactor[], featureName: string) {
+  return factors.some((factor) => factor.feature === featureName);
+}
+
+function formatFeatureName(name?: string) {
+  if (!name) return "Unknown parameter";
+
+  const dictionary: Record<string, string> = {
+    Tool_wear_min: "Tool Wear",
+    Torque_Nm: "Torque Load",
+    Rotational_speed_rpm: "Rotation Speed",
+    Air_temperature_K: "Air Temperature",
+    temp_diff: "Temperature Difference",
+    power_kw: "Power Consumption",
+  };
+
+  return dictionary[name] || name.replaceAll("_", " ");
+}
+
+function formatDate(value?: string) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString();
 }

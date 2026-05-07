@@ -1,5 +1,16 @@
 "use client";
 
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { useEffect, useMemo, useState } from "react";
 import styles from "./dashboard.module.css";
 import { fetchJson } from "@/components/dashboard-pages/api";
@@ -236,18 +247,43 @@ export default function DashboardMain() {
     );
   };
 
+  const healthOverviewData = useMemo(() => {
+    return [
+      { name: "Normal", value: stats.normalCount },
+      {
+        name: "Warning",
+        value: predictions.filter((item) => item.risk_level?.toUpperCase() === "WARNING").length,
+      },
+      { name: "Critical", value: stats.criticalCount },
+    ];
+  }, [predictions, stats.normalCount, stats.criticalCount]);
+
+  const severityBreakdownData = useMemo(() => {
+    return [
+      {
+        name: "Warning",
+        count: predictions.filter((item) => item.risk_level?.toUpperCase() === "WARNING").length,
+      },
+      {
+        name: "Critical",
+        count: predictions.filter((item) => item.risk_level?.toUpperCase() === "CRITICAL").length,
+      },
+    ];
+  }, [predictions]);
+
   if (loading) {
     return <main className={styles.page}><div className={styles.loading}>Loading dashboard...</div></main>;
   }
+
 
   return (
     <main className={styles.page}>
       <div className={styles.topHeader}>
         <div>
           <p className={styles.kicker}>IIoT Monitoring System</p>
-          <h1 className={styles.title}>Dashboard</h1>
+          <h1 className={styles.title}>Control Center</h1>
           <p className={styles.subtitle}>
-            Real-time overview of industrial devices, cloud alerts, and explainable AI insights.
+            Live monitoring of machine status, telemetry, alarms, and failure causes.
           </p>
         </div>
 
@@ -261,25 +297,25 @@ export default function DashboardMain() {
 
       <section className={styles.statsGrid}>
         <div className={styles.statCard}>
-          <p className={styles.statLabel}>Connected Devices</p>
+          <p className={styles.statLabel}>Machines Online</p>
           <h2 className={styles.statValue}>{stats.totalDevices}</h2>
           <span className={styles.statHint}>Registered in the system</span>
         </div>
 
         <div className={styles.statCard}>
-          <p className={styles.statLabel}>Predictions</p>
+          <p className={styles.statLabel}>Telemetry Events</p>
           <h2 className={styles.statValue}>{stats.totalPredictions}</h2>
           <span className={styles.statHint}>Loaded from API</span>
         </div>
 
         <div className={styles.statCard}>
-          <p className={styles.statLabel}>Active Alerts</p>
+          <p className={styles.statLabel}>Active Alarms</p>
           <h2 className={styles.statValueDanger}>{stats.activeAlerts}</h2>
           <span className={styles.statHint}>Warning and critical states</span>
         </div>
 
         <div className={styles.statCard}>
-          <p className={styles.statLabel}>System Health</p>
+          <p className={styles.statLabel}>Platform Status</p>
           <h2 className={styles.statValueSuccess}>{stats.healthText}</h2>
           <span className={styles.statHint}>
             {user?.full_name ? `Operator: ${user.full_name}` : "Backend status"}
@@ -287,12 +323,55 @@ export default function DashboardMain() {
         </div>
       </section>
 
+      <section className={styles.machineFleet}>
+        {devices.map((device) => {
+          const latest = sortedPredictions.find(
+            (p) => p.machine_id === device.machine_id || p.device_id === device.device_id
+          );
+
+          const level = (
+            latest?.risk_level ||
+            latest?.prediction_label ||
+            "NORMAL"
+          ).toUpperCase();
+
+          return (
+            <div key={device.id} className={styles.machineCard}>
+              <div className={styles.machineTop}>
+                <span
+                  className={`${styles.machineStatusDot} ${
+                    level === "CRITICAL"
+                      ? styles.dotCritical
+                      : level === "WARNING"
+                      ? styles.dotWarning
+                      : styles.dotNormal
+                  }`}
+                />
+                <strong>{device.name || device.device_id || `Machine ${device.machine_id}`}</strong>
+              </div>
+
+              <p className={styles.machineState}>{level}</p>
+
+              <div className={styles.machineMetrics}>
+                <span>Risk</span>
+                <b>{typeof latest?.risk_score === "number" ? latest.risk_score.toFixed(3) : "—"}</b>
+              </div>
+
+              <div className={styles.machineMetrics}>
+                <span>Last update</span>
+                <b>{formatTime(latest?.event_time || latest?.created_at)}</b>
+              </div>
+            </div>
+          );
+        })}
+      </section>
+
       <section className={styles.topGrid}>
         <div className={styles.chartCard}>
           <div className={styles.cardHeader}>
             <div>
-              <h3 className={styles.cardTitle}>Prediction Trend</h3>
-              <p className={styles.cardSubtitle}>Recent risk score history</p>
+              <h3 className={styles.cardTitle}>Risk Trend</h3>
+              <p className={styles.cardSubtitle}>Machine risk score over recent events</p>
             </div>
             <span className={styles.cardTag}>Live data</span>
           </div>
@@ -335,7 +414,7 @@ export default function DashboardMain() {
           <div className={styles.cardHeader}>
             <div>
               <h3 className={styles.cardTitle}>Active Machine Alerts</h3>
-              <p className={styles.cardSubtitle}>Generated from predictions and SHAP</p>
+              <p className={styles.cardSubtitle}>Warnings and critical machine states</p>
             </div>
           </div>
 
@@ -368,6 +447,62 @@ export default function DashboardMain() {
         <div className={styles.panel}>
           <div className={styles.cardHeader}>
             <div>
+              <h3 className={styles.cardTitle}>Machine Health Overview</h3>
+              <p className={styles.cardSubtitle}>Current distribution of machine states</p>
+            </div>
+          </div>
+
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart>
+              <Pie
+                data={healthOverviewData}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={65}
+                outerRadius={95}
+                paddingAngle={4}
+              >
+                {healthOverviewData.map((entry) => (
+                  <Cell
+                    key={entry.name}
+                    fill={
+                      entry.name === "Normal"
+                        ? "#22c55e"
+                        : entry.name === "Warning"
+                        ? "#f59e0b"
+                        : "#fb7185"
+                    }
+                  />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className={styles.panel}>
+          <div className={styles.cardHeader}>
+            <div>
+              <h3 className={styles.cardTitle}>Alert Severity Breakdown</h3>
+              <p className={styles.cardSubtitle}>Warning and critical events</p>
+            </div>
+          </div>
+
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={severityBreakdownData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="count" radius={[8, 8, 0, 0]} fill="#38bdf8" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      <section className={styles.bottomGrid}>
+        <div className={styles.panel}>
+          <div className={styles.cardHeader}>
+            <div>
               <h3 className={styles.cardTitle}>Latest Machine Status</h3>
               <p className={styles.cardSubtitle}>Latest results from devices</p>
             </div>
@@ -387,7 +522,7 @@ export default function DashboardMain() {
                         {item.device_id || `Machine ${item.machine_id ?? "—"}`}
                       </p>
                       <p className={styles.predictionMeta}>
-                        {item.model_name || "Model unavailable"} · {formatDate(item.event_time || item.created_at)}
+                        Last update · {formatDate(item.event_time || item.created_at)}
                       </p>
                     </div>
 
@@ -417,8 +552,8 @@ export default function DashboardMain() {
         <div className={styles.panel}>
           <div className={styles.cardHeader}>
             <div>
-              <h3 className={styles.cardTitle}>Root Cause Analysis</h3>
-              <p className={styles.cardSubtitle}>Top factors from latest explained prediction</p>
+              <h3 className={styles.cardTitle}>Failure Cause Analysis</h3>
+              <p className={styles.cardSubtitle}>Main parameters contributing to abnormal machine behavior</p>
             </div>
           </div>
 
@@ -442,7 +577,11 @@ export default function DashboardMain() {
                   <div className={styles.shapTop}>
                     <div>
                       <p className={styles.shapFeature}>{item.feature}</p>
-                      <p className={styles.shapImpact}>Impact: {item.impact}</p>
+                      <p className={styles.shapImpact}>
+                        {item.impact === "increase"
+                          ? "Increases failure risk"
+                          : "Reduces failure risk"}
+                      </p>
                     </div>
 
                     <span
