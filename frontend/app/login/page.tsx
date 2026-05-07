@@ -112,13 +112,6 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
-
-        <p className={styles.footer}>
-          No account yet?{" "}
-          <Link href="/register" className={styles.link}>
-            Create one
-          </Link>
-        </p>
       </div>
     </main>
   );
