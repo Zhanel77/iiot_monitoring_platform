@@ -8,10 +8,7 @@ app = FastAPI(title="Dashboard API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-    ],
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -19,7 +16,6 @@ app.add_middleware(
 
 app.include_router(api_router)
 app.include_router(alerts.router)
-
 
 @app.get("/health")
 def health():

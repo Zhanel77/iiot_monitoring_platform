@@ -41,18 +41,18 @@ services:
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-token
     restart: always
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
-      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards
-    depends_on:
-      - postgres
-      - influxdb
-    restart: always
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: grafana
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+  #     - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards
+  #   depends_on:
+  #     - postgres
+  #     - influxdb
+  #   restart: always
 
   edge-service:
     build: ./edge
@@ -114,7 +114,7 @@ services:
     env_file:
       - .env
     depends_on:
-      # - edge-service
+      - edge-service
       - mosquitto
     restart: always
 
