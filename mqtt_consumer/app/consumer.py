@@ -14,19 +14,81 @@ from app.postgres_writer import PostgresWriter
 
 logger = setup_logger()
 
-def build_explanation(top_factors: list[dict]) -> str:
-    reasons = []
+FEATURE_MESSAGES = {
+    "tool_wear_min": {
+        "increase": "tool wear reached abnormal operating levels",
+        "decrease": "tool wear remains within safe operating range",
+    },
 
-    for f in top_factors[:3]:
-        name = f["feature"]
-        value = f["feature_value"]
+    "torque_nm": {
+        "increase": "high torque load is stressing the machine",
+        "decrease": "torque load remains stable",
+    },
 
-        if f["effect"] == "increase":
-            reasons.append(f"{name} ({value}) increased risk")
-        else:
-            reasons.append(f"{name} ({value}) decreased risk")
+    "temp_diff": {
+        "increase": "thermal imbalance was detected",
+        "decrease": "thermal conditions remain stable",
+    },
 
-    return "; ".join(reasons)
+    "rotational_speed_rpm": {
+        "increase": "high rotational speed contributes to instability",
+        "decrease": "stable rotational speed reduces failure probability",
+    },
+
+    "air_temperature_k": {
+        "increase": "air temperature contributes to operational stress",
+        "decrease": "air temperature remains within acceptable limits",
+    },
+}
+
+
+def build_explanation(
+    top_factors: list[dict],
+    risk_level: str,
+) -> str:
+
+    if not top_factors:
+        return "No explainability data available."
+
+    explanations = []
+
+    for factor in top_factors[:3]:
+        feature = str(factor.get("feature", "")).lower()
+        effect = str(factor.get("effect", "")).lower()
+        value = factor.get("feature_value")
+
+        feature_messages = FEATURE_MESSAGES.get(feature)
+
+        if feature_messages:
+            text = feature_messages.get(effect)
+
+            if value is not None:
+                text = f"{text} (value={value})"
+
+            explanations.append(text)
+
+    if not explanations:
+        return "Model detected abnormal machine behavior."
+
+    joined = "; ".join(explanations)
+
+    risk_level = risk_level.upper()
+
+    if risk_level in {"CRITICAL", "HIGH_RISK"}:
+        return (
+            f"Critical failure risk detected because {joined}. "
+            f"Immediate inspection is recommended."
+        )
+
+    if risk_level == "WARNING":
+        return (
+            f"Warning threshold exceeded because {joined}. "
+            f"Preventive maintenance is recommended."
+        )
+
+    return (
+        f"Machine operates within expected range because {joined}."
+    )
 
 
 class MQTTConsumer:
@@ -140,7 +202,10 @@ class MQTTConsumer:
 
                     if self._should_create_alert_from_result(cloud_result):
                         top_factors = cloud_result.get("top_factors", [])
-                        explanation = build_explanation(top_factors) if top_factors else "No SHAP explanation available"
+                        explanation = build_explanation(
+                            top_factors=top_factors,
+                            risk_level=str(cloud_result["prediction_label"]),
+                        ) if top_factors else "No SHAP explanation available"
 
                         self.pg.insert_alert(
                             device_id=event["device_id"],
