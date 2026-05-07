@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "../auth.module.css";
 
-
 export default function RegisterPage() {
   const router = useRouter();
 
@@ -40,7 +39,7 @@ export default function RegisterPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(form),
-        }
+        },
       );
 
       const contentType = response.headers.get("content-type") || "";
