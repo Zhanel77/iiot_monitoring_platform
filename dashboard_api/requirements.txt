@@ -14,3 +14,5 @@ xgboost==2.0.3
 numpy
 shap
 httpx
+joblib
+scikit-learn

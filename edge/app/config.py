@@ -13,11 +13,11 @@ class Settings:
     MQTT_CLIENT_ID = os.getenv("MQTT_CLIENT_ID", "edge-service")
 
     # Model
-    MODEL_PATH = os.getenv("MODEL_PATH", "/app/models/edge_model.joblib")
+    MODEL_PATH = os.getenv("EDGE_MODEL_PATH", "/app/models/edge_model.pkl")
 
     # Normalization config
     NORMALIZATION_CONFIG_PATH = os.getenv(
-        "NORMALIZATION_CONFIG_PATH",
+        "EDGE_NORMALIZATION_CONFIG_PATH",
         "app/config/training_fallback.json"
     )
 
