@@ -21,6 +21,6 @@ class Settings:
     ALERT_RISK_THRESHOLD = float(os.getenv("ALERT_RISK_THRESHOLD", "0.8"))
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     
-    CLOUD_API_URL = os.getenv("CLOUD_API_URL", "http://dashboard_api:8000/api/v1/cloud/predict")
+    CLOUD_API_URL = os.getenv("CLOUD_API_URL", "http://dashboard_api:8000/api/v1/cloud/predict/legacy")
     CLOUD_API_TIMEOUT = float(os.getenv("CLOUD_API_TIMEOUT", "5"))
     ENABLE_CLOUD_PREDICTION = os.getenv("ENABLE_CLOUD_PREDICTION", "true").lower() == "true"
