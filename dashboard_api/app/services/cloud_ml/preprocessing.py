@@ -7,12 +7,20 @@ class CloudPreprocessor:
     def __init__(self, feature_list_path: Path, normalization_config_path: Path):
         with open(feature_list_path, "r", encoding="utf-8") as f:
             self.feature_list = [
-                    sanitize_feature_name(f) 
-                    for f in json.load(f)
-                ]
+                sanitize_feature_name(str(feature).strip())
+                for feature in json.load(f)
+            ]
 
         with open(normalization_config_path, "r", encoding="utf-8") as f:
-            self.normalization_config = json.load(f)
+            raw_config = json.load(f)
+
+        self.normalization_config = {
+            sanitize_feature_name(str(k).strip()): v
+            for k, v in raw_config.items()
+        }
+
+        # print("FEATURE LIST:", self.feature_list)
+        # print("NORMALIZATION CONFIG KEYS:", list(self.normalization_config.keys()))
 
     @staticmethod
     def _safe_float(value: float) -> float:
@@ -59,39 +67,63 @@ class CloudPreprocessor:
         if not cfg:
             return float(value)
 
-        method = cfg.get("method", "none")
+        mode = cfg.get("mode") or cfg.get("method") or "none"
 
-        if method == "robust":
-            median = cfg.get("median", 0.0)
-            iqr = cfg.get("iqr", 1.0)
-            if iqr == 0:
+        if mode == "ratio":
+            max_v = cfg.get("max", 1.0)
+            if max_v == 0:
                 return float(value)
-            return (value - median) / iqr
+            return float(value) / max_v
 
-        if method == "standard":
-            mean = cfg.get("mean", 0.0)
-            std = cfg.get("std", 1.0)
-            if std == 0:
-                return float(value)
-            return (value - mean) / std
-
-        if method == "minmax":
+        if mode == "minmax":
             min_v = cfg.get("min", 0.0)
             max_v = cfg.get("max", 1.0)
             if max_v == min_v:
                 return float(value)
-            return (value - min_v) / (max_v - min_v)
+            return (float(value) - min_v) / (max_v - min_v)
+
+        if mode == "robust":
+            median = cfg.get("median", 0.0)
+            iqr = cfg.get("iqr", 1.0)
+            if iqr == 0:
+                return float(value)
+            return (float(value) - median) / iqr
+
+        if mode == "standard":
+            mean = cfg.get("mean", 0.0)
+            std = cfg.get("std", 1.0)
+            if std == 0:
+                return float(value)
+            return (float(value) - mean) / std
 
         return float(value)
 
     def prepare_features(self, payload: dict) -> tuple[list[float], dict]:
+        features_raw = payload.get("features_raw") or {}
+
         raw = {
-            "Air temperature [K]": self._safe_float(payload["air_temperature_k"]),
-            "Process temperature [K]": self._safe_float(payload["process_temperature_k"]),
-            "Rotational speed [rpm]": self._safe_float(payload["rotational_speed_rpm"]),
-            "Torque [Nm]": self._safe_float(payload["torque_nm"]),
-            "Tool wear [min]": self._safe_float(payload["tool_wear_min"]),
+            "Air temperature [K]": self._safe_float(
+                features_raw.get("Air temperature [K]", payload.get("air_temperature_k", 0))
+            ),
+            "Process temperature [K]": self._safe_float(
+                features_raw.get("Process temperature [K]", payload.get("process_temperature_k", 0))
+            ),
+            "Rotational speed [rpm]": self._safe_float(
+                features_raw.get("Rotational speed [rpm]", payload.get("rotational_speed_rpm", 0))
+            ),
+            "Torque [Nm]": self._safe_float(
+                features_raw.get("Torque [Nm]", payload.get("torque_nm", 0))
+            ),
+            "Tool wear [min]": self._safe_float(
+                features_raw.get("Tool wear [min]", payload.get("tool_wear_min", 0))
+            ),
         }
+
+        # если process_temperature не пришел, но temp_diff есть
+        if raw["Process temperature [K]"] == 0 and "temp_diff" in features_raw:
+            raw["Process temperature [K]"] = (
+                raw["Air temperature [K]"] + self._safe_float(features_raw["temp_diff"])
+            )
 
         engineered = self._engineer_features(raw)
         engineered = self._sanitize_feature_names(engineered)
@@ -107,5 +139,9 @@ class CloudPreprocessor:
             normalized_value = self._normalize_value(feature_name, float(value))
             ordered_features.append(normalized_value)
             features_used[feature_name] = float(value)
+
+        # print("CLOUD RAW:", raw)
+        # print("CLOUD FEATURES USED:", features_used)
+        # print("CLOUD ORDERED FEATURES:", ordered_features)
 
         return ordered_features, features_used
