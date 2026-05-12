@@ -1,3 +1,4 @@
+# app/repositories/device_repository.py
 from sqlalchemy.orm import Session
 from app.models.device import Device
 from app.models.user_device import UserDevice
@@ -10,11 +11,17 @@ class DeviceRepository:
     def get_all(self):
         return self.db.query(Device).all()
 
-    def create(self, machine_id: int, device_id: str, name: str | None):
+    def create(self, machine_id: int, device_id: str, name: str | None = None, 
+               weather_dependent: bool = False, latitude: float = None, 
+               longitude: float = None, weather_sensitivity: str = "medium"):
         device = Device(
             machine_id=machine_id,
             device_id=device_id,
             name=name,
+            weather_dependent=weather_dependent,
+            latitude=latitude,
+            longitude=longitude,
+            weather_sensitivity=weather_sensitivity,
         )
         self.db.add(device)
         self.db.commit()
@@ -27,7 +34,6 @@ class DeviceRepository:
             .filter(Device.machine_id == machine_id)
             .first()
         )
-
 
     def get_by_device_id(self, device_id: str):
         return self.db.query(Device).filter(Device.device_id == device_id).first()

@@ -19,15 +19,54 @@ class PostgresWriter:
         self.conn.autocommit = True
 
     def upsert_device(self, machine_id: int, device_id: str) -> None:
+        DEVICE_LOCATIONS = {
+            1: {"latitude": 51.1694, "longitude": 71.4491},  # Astana
+            2: {"latitude": 43.2220, "longitude": 76.8512},  # Almaty
+            3: {"latitude": 47.0945, "longitude": 51.9238},  # Atyrau
+            4: {"latitude": 42.3417, "longitude": 69.5901},  # Shymkent
+            5: {"latitude": 50.2839, "longitude": 57.1660},  # Aktobe
+        }
+
+        location = DEVICE_LOCATIONS.get(
+            machine_id,
+            {"latitude": 51.1694, "longitude": 71.4491},
+        )
+
         query = """
-        INSERT INTO devices (machine_id, device_id, name)
-        VALUES (%s, %s, %s)
+        INSERT INTO devices (
+            machine_id,
+            device_id,
+            name,
+            weather_dependent,
+            latitude,
+            longitude,
+            weather_sensitivity
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (device_id) DO UPDATE
         SET machine_id = EXCLUDED.machine_id,
-            name = EXCLUDED.name
+            name = EXCLUDED.name,
+            weather_dependent = EXCLUDED.weather_dependent,
+            latitude = EXCLUDED.latitude,
+            longitude = EXCLUDED.longitude,
+            weather_sensitivity = EXCLUDED.weather_sensitivity
         """
+
         with self.conn.cursor() as cur:
-            cur.execute(query, (machine_id, device_id, f"Machine {machine_id}"))
+            cur.execute(
+                query,
+                (
+                    machine_id,
+                    device_id,
+                    f"Machine {machine_id}",
+                    True,
+                    location["latitude"],
+                    location["longitude"],
+                    "medium",
+                ),
+            )
+
+        self.conn.commit()
 
     def insert_prediction(
         self,
@@ -42,7 +81,10 @@ class PostgresWriter:
         features_used=None,
         top_factors=None,
         model_type: str = "edge",
+        weather_factor: Optional[float] = None,  # НОВЫЙ параметр
+        ml_risk_score: Optional[float] = None,    # НОВЫЙ параметр
     ) -> int:
+        # Обновляем запрос с новыми полями
         query = """
         INSERT INTO predictions (
             device_id,
@@ -55,9 +97,11 @@ class PostgresWriter:
             features_used,
             top_factors,
             risk_level,
-            model_type
+            model_type,
+            weather_factor,
+            ml_risk_score
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """
         with self.conn.cursor() as cur:
@@ -75,11 +119,13 @@ class PostgresWriter:
                     Json(top_factors) if top_factors is not None else None,
                     risk_level,
                     model_type,
+                    weather_factor,  # НОВОЕ поле
+                    ml_risk_score,   # НОВОЕ поле
                 ),
             )
             row = cur.fetchone()
             return int(row["id"])
-
+        
     def insert_alert(
         self,
         device_id: str,

@@ -1,3 +1,4 @@
+# app/influx_writer.py
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
@@ -38,6 +39,20 @@ class InfluxWriter:
         self.write_api.write(bucket=self.bucket, org=self.org, record=point)
 
     def write_cloud_event(self, event: dict) -> None:
+        # Безопасное получение weather_factor
+        weather_factor = event.get("weather_factor")
+        if weather_factor is None:
+            weather_factor = 1.0
+        else:
+            weather_factor = float(weather_factor)
+        
+        # Безопасное получение ml_risk_score
+        ml_risk_score = event.get("ml_risk_score")
+        if ml_risk_score is None:
+            ml_risk_score = event.get("risk_score", 0.0)
+        else:
+            ml_risk_score = float(ml_risk_score)
+        
         point = (
             Point("cloud_predictions")
             .tag("device_id", str(event["device_id"]))
@@ -47,10 +62,12 @@ class InfluxWriter:
             .tag("scenario", str(event.get("scenario", "unknown")))
             .field("prediction", int(event["prediction"]))
             .field("risk_score", float(event["risk_score"]))
+            .field("ml_risk_score", ml_risk_score)
+            .field("weather_factor", weather_factor)
             .time(event["timestamp"], WritePrecision.NS)
         )
 
         self.write_api.write(bucket=self.bucket, org=self.org, record=point)
 
     def close(self) -> None:
-        self.client.close()
+        self.client.close() 
