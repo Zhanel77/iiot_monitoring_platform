@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import styles from "./sidebar.module.css";
 import { getRolePermissions } from "@/components/dashboard-pages/permissions";
+import { BarChart3 } from "lucide-react";
 
 type SidebarProps = {
   user?: {
@@ -20,28 +21,32 @@ export default function Sidebar({ user }: SidebarProps) {
   const permissions = getRolePermissions(user?.role);
 
   const menuItems = [
-  permissions.canViewDashboard
-    ? { label: "Control Center", href: "/dashboard", icon: "▣" }
-    : null,
-  permissions.canViewDevices
-    ? { label: "Machines", href: "/dashboard/devices", icon: "⌘" }
-    : null,
-  permissions.canViewPredictions
-    ? { label: "Telemetry Events", href: "/dashboard/predictions", icon: "◔" }
-    : null,
-  permissions.canViewAlerts
-    ? { label: "Alarm Center", href: "/dashboard/alerts", icon: "⚠" }
-    : null,
-  permissions.canRegisterUsers
-    ? { label: "Register Operator", href: "/dashboard/register", icon: "✚" }
-    : null,
-  permissions.canManageUsers
-    ? { label: "Operators", href: "/dashboard/users", icon: "☰" }
-    : null,
-  permissions.canViewProfile
-    ? { label: "Operator Console", href: "/dashboard/profile", icon: "◉" }
-    : null,
-].filter(Boolean) as { label: string; href: string; icon: string }[];
+    permissions.canViewDashboard
+      ? { label: "Control Center", href: "/dashboard", icon: "▣" }
+      : null,
+    permissions.canViewDevices
+      ? { label: "Machines", href: "/dashboard/devices", icon: "⌘" }
+      : null,
+    permissions.canViewPredictions
+      ? { label: "Telemetry Events", href: "/dashboard/predictions", icon: "◔" }
+      : null,
+    permissions.canViewAlerts
+      ? { label: "Alarm Center", href: "/dashboard/alerts", icon: "⚠" }
+      : null,
+    permissions.canRegisterUsers
+      ? { label: "Register Operator", href: "/dashboard/register", icon: "✚" }
+      : null,
+    permissions.canManageUsers
+      ? { label: "Operators", href: "/dashboard/users", icon: "☰" }
+      : null,
+    permissions.canViewProfile
+      ? { label: "Operator Console", href: "/dashboard/profile", icon: "◉" }
+      : null,
+
+    permissions.canViewDashboard
+      ? { label: "Grafana", href: "/dashboard/grafana", icon: "📊" }
+      : null,
+  ].filter(Boolean) as { label: string; href: string; icon: string }[];
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
