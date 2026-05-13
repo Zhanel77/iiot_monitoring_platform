@@ -158,6 +158,10 @@ class MQTTConsumer:
                     device_id=event["device_id"],
                     machine_id=event["machine_id"],
                     prediction_id=edge_prediction_id,
+                    risk_score=float(cloud_result["risk_score"]),
+                    risk_level=str(cloud_result["prediction_label"]),
+                    features_used=cloud_result.get("features_used"),
+                    top_factors=cloud_result.get("top_factors"),
                     alert_type="edge_fast_alert",
                     severity=self._severity_from_score(event["risk_score"]),
                     message=(
@@ -230,6 +234,10 @@ class MQTTConsumer:
                             device_id=event["device_id"],
                             machine_id=event["machine_id"],
                             prediction_id=cloud_prediction_id,
+                            risk_score=float(cloud_result["risk_score"]),
+                            risk_level=str(cloud_result["prediction_label"]),
+                            features_used=cloud_result.get("features_used"),
+                            top_factors=cloud_result.get("top_factors"),
                             alert_type="cloud_shap_risk",
                             severity=self._severity_from_score(float(cloud_result["risk_score"])),
                             message=(
