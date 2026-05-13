@@ -6,8 +6,8 @@ from typing import Optional
 
 class ShapFactorRead(BaseModel):
     feature: str
-    feature_value: Optional[float]
-    shap_value: Optional[float]
+    feature_value: Optional[float] = None
+    shap_value: Optional[float] = None
     effect: str
 
 

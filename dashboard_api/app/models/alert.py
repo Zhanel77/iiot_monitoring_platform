@@ -2,7 +2,8 @@ from datetime import datetime
 from sqlalchemy import String, Integer, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
-
+from sqlalchemy import Float
+from sqlalchemy.dialects.postgresql import JSONB
 
 class Alert(Base):
     __tablename__ = "alerts"
@@ -13,6 +14,20 @@ class Alert(Base):
 
     prediction_id: Mapped[int | None] = mapped_column(
         ForeignKey("predictions.id", ondelete="SET NULL")
+    )
+
+    risk_score: Mapped[float | None] = mapped_column(Float)
+
+    risk_level: Mapped[str | None] = mapped_column(
+        String(20)
+    )
+
+    features_used: Mapped[dict | None] = mapped_column(
+        JSONB
+    )
+
+    top_factors: Mapped[list | None] = mapped_column(
+        JSONB
     )
 
     alert_type: Mapped[str] = mapped_column(String(50), nullable=False)

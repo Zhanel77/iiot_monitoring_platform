@@ -41,18 +41,26 @@ services:
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-token
     restart: always
 
-  # grafana:
-  #   image: grafana/grafana:latest
-  #   container_name: grafana
-  #   ports:
-  #     - "3000:3000"
-  #   volumes:
-  #     - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
-  #     - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards
-  #   depends_on:
-  #     - postgres
-  #     - influxdb
-  #   restart: always
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - influxdb
+      - postgres
 
   edge-service:
     build: ./edge
@@ -74,7 +82,7 @@ services:
       - postgres
       - influxdb
     restart: always
-    
+
   # alert-service:
   #   build: ./alert_service
   #   container_name: alert-service
@@ -109,3 +117,4 @@ services:
 volumes:
   postgres_data:
   influx_data:
+  grafana_data:
