@@ -1,11 +1,101 @@
 {
-  "id": null,
   "uid": "iiot-predictive-maintenance",
   "title": "IIoT Predictive Maintenance Dashboard",
-  "tags": ["iiot", "predictive-maintenance"],
+  "tags": ["iiot", "predictive-maintenance", "grafana"],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
   "refresh": "5s",
-  "panels": []
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Risk Score",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "influxdb", "uid": "InfluxDB" },
+      "targets": [
+        {
+          "query": "from(bucket: \"iiot-bucket\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"machine_metrics\")\n  |> filter(fn: (r) => r._field == \"risk_score\")\n  |> aggregateWindow(every: 10s, fn: mean, createEmpty: false)\n  |> yield(name: \"risk_score\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Temperature",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "influxdb", "uid": "InfluxDB" },
+      "targets": [
+        {
+          "query": "from(bucket: \"iiot-bucket\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"machine_metrics\")\n  |> filter(fn: (r) => r._field == \"air_temperature_k\" or r._field == \"process_temperature_k\")\n  |> aggregateWindow(every: 10s, fn: mean, createEmpty: false)\n  |> yield(name: \"temperature\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Torque",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "influxdb", "uid": "InfluxDB" },
+      "targets": [
+        {
+          "query": "from(bucket: \"iiot-bucket\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"machine_metrics\")\n  |> filter(fn: (r) => r._field == \"torque_nm\")\n  |> aggregateWindow(every: 10s, fn: mean, createEmpty: false)\n  |> yield(name: \"torque\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Rotational Speed",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "influxdb", "uid": "InfluxDB" },
+      "targets": [
+        {
+          "query": "from(bucket: \"iiot-bucket\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"machine_metrics\")\n  |> filter(fn: (r) => r._field == \"rotational_speed_rpm\")\n  |> aggregateWindow(every: 10s, fn: mean, createEmpty: false)\n  |> yield(name: \"rpm\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Tool Wear",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "influxdb", "uid": "InfluxDB" },
+      "targets": [
+        {
+          "query": "from(bucket: \"iiot-bucket\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"machine_metrics\")\n  |> filter(fn: (r) => r._field == \"tool_wear_min\")\n  |> aggregateWindow(every: 10s, fn: mean, createEmpty: false)\n  |> yield(name: \"tool_wear\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Latest Risk Score",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "influxdb", "uid": "InfluxDB" },
+      "targets": [
+        {
+          "query": "from(bucket: \"iiot-bucket\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"machine_metrics\")\n  |> filter(fn: (r) => r._field == \"risk_score\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    }
+  ]
 }

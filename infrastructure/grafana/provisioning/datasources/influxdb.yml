@@ -8,8 +8,8 @@ datasources:
     isDefault: true
     jsonData:
       version: Flux
-      organization: iiot_org
-      defaultBucket: iiot_bucket
+      organization: iiot-org
+      defaultBucket: iiot-bucket
       tlsSkipVerify: true
     secureJsonData:
-      token: iiot_token
+      token: my-super-token

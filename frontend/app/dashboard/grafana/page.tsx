@@ -25,7 +25,7 @@ export default function GrafanaPage() {
         }}
       >
         <iframe
-          src="http://localhost:3000"
+          src="http://localhost:3000/d/iiot-predictive-maintenance/iiot-predictive-maintenance-dashboard?orgId=1&from=now-2h&to=now&timezone=browser&refresh=5s"
           width="100%"
           height="100%"
           style={{ border: "none" }}
