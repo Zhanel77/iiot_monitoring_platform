@@ -7,7 +7,7 @@ Create Date: 2026-05-04 14:59:57.515769
 """
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 revision = 'd91f6bbbc027'
 down_revision = '0001'
@@ -32,6 +32,12 @@ def upgrade():
     op.create_index("idx_devices_weather_dependent", "devices", ["weather_dependent"])
     op.create_index("idx_devices_coordinates", "devices", ["latitude", "longitude"])
 
+    op.add_column("alerts", sa.Column("risk_score", sa.Float(), nullable=True))
+    op.add_column("alerts", sa.Column("risk_level", sa.String(length=20), nullable=True))
+    op.add_column("alerts", sa.Column("features_used", postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+    op.add_column("alerts", sa.Column("top_factors", postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+
+
 
 def downgrade():
     # Удаляем индексы
@@ -49,3 +55,9 @@ def downgrade():
     op.drop_column("devices", "longitude")
     op.drop_column("devices", "latitude")
     op.drop_column("devices", "weather_dependent")
+
+    op.drop_column("alerts", "top_factors")
+    op.drop_column("alerts", "features_used")
+    op.drop_column("alerts", "risk_level")
+    op.drop_column("alerts", "risk_score")
+    op.drop_column("alerts", "prediction_id")

@@ -1,5 +1,6 @@
 from typing import Optional
 
+import json
 import psycopg2
 from psycopg2.extras import RealDictCursor, Json
 
@@ -134,7 +135,13 @@ class PostgresWriter:
         alert_type: str,
         severity: str,
         message: str,
+
+        risk_score: float | None = None,
+        risk_level: str | None = None,
+        features_used: dict | None = None,
+        top_factors: list | None = None,
     ) -> None:
+
         query = """
         INSERT INTO alerts (
             device_id,
@@ -142,10 +149,15 @@ class PostgresWriter:
             prediction_id,
             alert_type,
             severity,
-            message
+            message,
+            risk_score,
+            risk_level,
+            features_used,
+            top_factors
         )
-        VALUES (%s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
+
         with self.conn.cursor() as cur:
             cur.execute(
                 query,
@@ -156,6 +168,11 @@ class PostgresWriter:
                     alert_type,
                     severity,
                     message,
+
+                    risk_score,
+                    risk_level,
+                    json.dumps(features_used) if features_used else None,
+                    json.dumps(top_factors) if top_factors else None,
                 ),
             )
 
