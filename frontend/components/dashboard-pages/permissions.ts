@@ -43,12 +43,20 @@ export function canAccessPath(role: string | undefined, pathname: string) {
   const permissions = getRolePermissions(role);
 
   if (pathname === "/dashboard") return permissions.canViewDashboard;
-  if (pathname.startsWith("/dashboard/devices")) return permissions.canViewDevices;
-  if (pathname.startsWith("/dashboard/predictions")) return permissions.canViewPredictions;
-  if (pathname.startsWith("/dashboard/alerts")) return permissions.canViewAlerts;
-  if (pathname.startsWith("/dashboard/profile")) return permissions.canViewProfile;
-  if (pathname.startsWith("/dashboard/register")) return permissions.canRegisterUsers;
-  if (pathname.startsWith("/dashboard/users")) return permissions.canManageUsers;
+  if (pathname.startsWith("/dashboard/devices"))
+    return permissions.canViewDevices;
+  if (pathname.startsWith("/dashboard/predictions"))
+    return permissions.canViewPredictions;
+  if (pathname.startsWith("/dashboard/alerts"))
+    return permissions.canViewAlerts;
+  if (pathname.startsWith("/dashboard/profile"))
+    return permissions.canViewProfile;
+  if (pathname.startsWith("/dashboard/register"))
+    return permissions.canRegisterUsers;
+  if (pathname.startsWith("/dashboard/users"))
+    return permissions.canManageUsers;
+  if (pathname.startsWith("/dashboard/grafana"))
+    return permissions.canViewDashboard;
 
   return false;
 }
