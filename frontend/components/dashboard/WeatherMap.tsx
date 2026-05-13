@@ -103,6 +103,7 @@ export default function WeatherMap({ devices }: Props) {
       }}
     >
       <MapContainer
+        key="weather-map"
         center={[48.0196, 66.9237]}
         zoom={5}
         style={{ width: "100%", height: "100%" }}

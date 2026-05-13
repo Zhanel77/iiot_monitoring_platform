@@ -442,49 +442,6 @@ export default function DashboardMain() {
         </div>
       </section>
 
-      <section className={styles.machineFleet}>
-        {devices.map((device) => {
-          const latest = sortedPredictions.find(
-            (p) => p.machine_id === device.machine_id || p.device_id === device.device_id
-          );
-
-          const level = (
-            latest?.risk_level ||
-            latest?.prediction_label ||
-            "NORMAL"
-          ).toUpperCase();
-
-          return (
-            <div key={device.id} className={styles.machineCard}>
-              <div className={styles.machineTop}>
-                <span
-                  className={`${styles.machineStatusDot} ${
-                    level === "CRITICAL"
-                      ? styles.dotCritical
-                      : level === "WARNING"
-                      ? styles.dotWarning
-                      : styles.dotNormal
-                  }`}
-                />
-                <strong>{device.name || device.device_id || `Machine ${device.machine_id}`}</strong>
-              </div>
-
-              <p className={styles.machineState}>{level}</p>
-
-              <div className={styles.machineMetrics}>
-                <span>Risk</span>
-                <b>{typeof latest?.risk_score === "number" ? latest.risk_score.toFixed(3) : "—"}</b>
-              </div>
-
-              <div className={styles.machineMetrics}>
-                <span>Last update</span>
-                <b>{formatTime(latest?.event_time || latest?.created_at)}</b>
-              </div>
-            </div>
-          );
-        })}
-      </section>
-
       <section className={styles.topGrid}>
         <div className={styles.chartCard}>
           <div className={styles.cardHeader}>
@@ -562,6 +519,56 @@ export default function DashboardMain() {
         </div>
       </section>
 
+      <div className={styles.sectionHeader}>
+        <div>
+          <h3 className={styles.cardTitle}>Machine Fleet Status</h3>
+          <p className={styles.cardSubtitle}>Current operational state of monitored machines</p>
+        </div>
+      </div>
+
+      <section className={styles.machineFleet}>
+        {devices.map((device) => {
+          const latest = sortedPredictions.find(
+            (p) => p.machine_id === device.machine_id || p.device_id === device.device_id
+          );
+
+          const level = (
+            latest?.risk_level ||
+            latest?.prediction_label ||
+            "NORMAL"
+          ).toUpperCase();
+
+          return (
+            <div key={device.id} className={styles.machineCard}>
+              <div className={styles.machineTop}>
+                <span
+                  className={`${styles.machineStatusDot} ${
+                    level === "CRITICAL"
+                      ? styles.dotCritical
+                      : level === "WARNING"
+                      ? styles.dotWarning
+                      : styles.dotNormal
+                  }`}
+                />
+                <strong>{device.name || device.device_id || `Machine ${device.machine_id}`}</strong>
+              </div>
+
+              <p className={styles.machineState}>{level}</p>
+
+              <div className={styles.machineMetrics}>
+                <span>Risk</span>
+                <b>{typeof latest?.risk_score === "number" ? latest.risk_score.toFixed(3) : "—"}</b>
+              </div>
+
+              <div className={styles.machineMetrics}>
+                <span>Last update</span>
+                <b>{formatTime(latest?.event_time || latest?.created_at)}</b>
+              </div>
+            </div>
+          );
+        })}
+      </section>
+
       <section className={styles.panel}>
         <div className={styles.cardHeader}>
           <div>
@@ -574,7 +581,9 @@ export default function DashboardMain() {
             </p>
           </div>
         </div>
-        <WeatherMap devices={weatherStatuses} />
+        {weatherStatuses.length > 0 && (
+          <WeatherMap devices={weatherStatuses} />
+        )}
       </section>
 
       <section className={styles.bottomGrid}>

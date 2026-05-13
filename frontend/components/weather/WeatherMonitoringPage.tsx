@@ -55,8 +55,6 @@ export default function WeatherMonitoringPage() {
     };
 
     load();
-    const interval = setInterval(load, 15000);
-    return () => clearInterval(interval);
   }, [apiUrl]);
 
   if (loading) {
