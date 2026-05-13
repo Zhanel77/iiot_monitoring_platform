@@ -1,12 +1,13 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Any
+from typing import Optional
 
 
 class ShapFactorRead(BaseModel):
     feature: str
-    feature_value: float
-    shap_value: float
+    feature_value: Optional[float]
+    shap_value: Optional[float]
     effect: str
 
 

@@ -495,6 +495,82 @@
   color: #f8fafc;
 }
 
+.weatherGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 22px 0;
+}
+
+.weatherCard {
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 35%),
+    rgba(15, 23, 42, 0.92);
+  border-radius: 22px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.3);
+}
+
+.weatherLabel {
+  margin: 0 0 8px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.weatherValue {
+  margin: 0;
+  font-size: 30px;
+  color: #e2e8f0;
+}
+
+.weatherValueWarning {
+  margin: 0;
+  font-size: 30px;
+  color: #f59e0b;
+}
+
+.weatherValueDanger {
+  margin: 0;
+  font-size: 30px;
+  color: #fb7185;
+}
+
+.weatherHint {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.weatherIcon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: rgba(56, 189, 248, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+@media (max-width: 1100px) {
+  .weatherGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .weatherGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1200px) {
   .machineFleet {
     grid-template-columns: repeat(2, minmax(0, 1fr));
