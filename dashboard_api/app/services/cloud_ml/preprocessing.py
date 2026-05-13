@@ -43,8 +43,7 @@ class CloudPreprocessor:
 
         temp_diff = process_temp - air_temp
 
-        # Если в training у тебя была другая формула/масштаб — замени тут точно на ту же
-        power_kw = 2 * math.pi * torque * rotational_speed / 60000.0
+        power_kw = 2 * math.pi * torque * rotational_speed / 60.0 / 1000.0
 
         wear_rate = tool_wear / max(rotational_speed, 1.0)
         thermal_stress = temp_diff * torque
