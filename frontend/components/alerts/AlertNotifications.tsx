@@ -30,28 +30,40 @@ export function AlertNotifications() {
 
         if (!Array.isArray(alerts) || alerts.length === 0) return;
 
-        const newest = alerts[0];
+        alerts.forEach((alert) => {
+          if (shownMachineAlerts.current.has(alert.id)) {
+            return;
+          }
 
-        if (!shownMachineAlerts.current.has(newest.id)) {
-          shownMachineAlerts.current.add(newest.id);
+          shownMachineAlerts.current.add(alert.id);
 
           notifications.show({
-            title: `⚠ Operational Alert · Machine ${newest.machine_id}`,
+            title:
+              alert.severity === "critical"
+                ? `🚨 Critical Machine ${alert.machine_id}`
+                : `⚠ Warning Machine ${alert.machine_id}`,
+
             message: (
               <div
                 onClick={() => {
-                  window.location.href = `/dashboard/alerts?alertId=${newest.id}`;
+                  window.location.href = `/dashboard/alerts?alertId=${alert.id}`;
                 }}
                 style={{ cursor: "pointer" }}
               >
-                Abnormal machine behavior detected. Operational risk exceeded normal threshold.
+                {alert.message ||
+                  "Operational risk exceeded normal threshold."}
               </div>
             ),
-            color: newest.severity === "critical" ? "red" : "orange",
-            autoClose: 8000,
+
+            color:
+              alert.severity === "critical"
+                ? "red"
+                : "orange",
+
+            autoClose: 10000,
             withBorder: true,
           });
-        }
+        });
       } catch (error) {
         console.error("Failed to load machine alerts", error);
       }

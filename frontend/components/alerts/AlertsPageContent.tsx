@@ -360,7 +360,7 @@ export default function AlertsPageContent() {
                     </h3>
 
                     <p className={pageStyles.cardText}>
-                      Machine operating state exceeded the safe monitoring threshold.
+                      {buildAlarmExplanation(alarm.top_factors)}
                     </p>
 
                     <p className={pageStyles.cardFooter}>
@@ -375,6 +375,47 @@ export default function AlertsPageContent() {
       )}
     </main>
   );
+}
+
+function buildAlarmExplanation(factors?: FailureFactor[]) {
+  if (!factors || factors.length === 0) {
+    return "Abnormal machine behavior detected.";
+  }
+
+  const increased = factors.filter((factor) => factor.effect === "increase");
+
+  if (increased.length === 0) {
+    return "Machine behavior deviates from normal operating conditions.";
+  }
+
+  const reasons = increased.slice(0, 2).map((factor) => {
+    const name = formatFeatureName(factor.feature);
+    const value = factor.feature_value ?? "—";
+
+    if (factor.feature === "Tool_wear_min") {
+      return `${name} reached ${value} min`;
+    }
+
+    if (factor.feature === "Torque_Nm") {
+      return `${name} increased to ${value} Nm`;
+    }
+
+    if (factor.feature === "Rotational_speed_rpm") {
+      return `${name} changed to ${value} rpm`;
+    }
+
+    if (factor.feature === "temp_diff") {
+      return `${name} reached ${value} K`;
+    }
+
+    if (factor.feature === "power_kw") {
+      return `${name} increased to ${value} kW`;
+    }
+
+    return `${name} increased to ${value}`;
+  });
+
+  return `Failure risk increased because ${reasons.join(" and ")}.`;
 }
 
 function hasFactor(factors: FailureFactor[], featureName: string) {
