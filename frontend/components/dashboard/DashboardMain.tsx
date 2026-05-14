@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import styles from "./dashboard.module.css";
 import { fetchJson } from "@/components/dashboard-pages/api";
+import dynamic from "next/dynamic";
 
 type UserInfo = {
   id?: number;
@@ -56,6 +57,22 @@ type HealthResponse = {
   status: string;
 };
 
+type DeviceWeatherStatus = {
+  device_id: string;
+  machine_id?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  risk_score?: number | null;
+  risk_level?: string | null;
+  outside_temp_c?: number | null;
+  outside_humidity?: number | null;
+  outside_pressure?: number | null;
+  wind_speed?: number | null;
+  weather_main?: string | null;
+  weather_impact?: "LOW" | "MEDIUM" | "HIGH" | string | null;
+  environmental_reasons?: string[];
+};
+
 export default function DashboardMain() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -63,9 +80,14 @@ export default function DashboardMain() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [weatherStatuses, setWeatherStatuses] = useState<DeviceWeatherStatus[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const WeatherMap = dynamic(
+    () => import("./WeatherMap"),
+    { ssr: false }
+  );
 
   useEffect(() => {
     if (!apiUrl) {
@@ -76,18 +98,20 @@ export default function DashboardMain() {
 
     const load = async () => {
       try {
-        const [healthData, meData, devicesData, predictionsData] =
+        const [healthData, meData, devicesData, predictionsData, weatherData] =
           await Promise.all([
             fetchJson<HealthResponse>(`${apiUrl}/health`),
             fetchJson<UserInfo>(`${apiUrl}/api/v1/auth/me`),
             fetchJson<Device[]>(`${apiUrl}/api/v1/devices`),
             fetchJson<Prediction[]>(`${apiUrl}/api/v1/predictions`),
+            fetchJson<DeviceWeatherStatus[]>(`${apiUrl}/api/v1/weather/devices-status`),
           ]);
 
         setHealth(healthData);
         setUser(meData);
         setDevices(Array.isArray(devicesData) ? devicesData : []);
         setPredictions(Array.isArray(predictionsData) ? predictionsData : []);
+        setWeatherStatuses(Array.isArray(weatherData) ? weatherData : []);
         setError("");
       } catch (err) {
         const errorObj = err as Error;
@@ -142,6 +166,39 @@ export default function DashboardMain() {
     };
   }, [devices, predictions, health]);
 
+  const weatherStats = useMemo(() => {
+    const validTemps = weatherStatuses
+      .map((item) => item.outside_temp_c)
+      .filter((value): value is number => typeof value === "number");
+
+    const averageTemp =
+      validTemps.length > 0
+        ? validTemps.reduce((sum, value) => sum + value, 0) / validTemps.length
+        : null;
+
+    const impactedDevices = weatherStatuses.filter((item) => {
+      const impact = item.weather_impact?.toUpperCase();
+      return impact === "MEDIUM" || impact === "HIGH";
+    });
+
+    const highImpactDevices = weatherStatuses.filter(
+      (item) => item.weather_impact?.toUpperCase() === "HIGH"
+    );
+
+    const strongestWeatherDevice = [...weatherStatuses].sort((a, b) => {
+      const aTemp = a.outside_temp_c ?? -999;
+      const bTemp = b.outside_temp_c ?? -999;
+      return bTemp - aTemp;
+    })[0];
+
+    return {
+      averageTemp,
+      impactedCount: impactedDevices.length,
+      highImpactCount: highImpactDevices.length,
+      strongestWeatherDevice,
+    };
+  }, [weatherStatuses]);
+
   const latestPredictionWithShap = useMemo(() => {
     return sortedPredictions.find(
       (item) => Array.isArray(item.top_factors) && item.top_factors.length > 0
@@ -192,6 +249,18 @@ export default function DashboardMain() {
         });
       });
 
+      weatherStatuses
+      .filter((item) => item.weather_impact?.toUpperCase() !== "LOW")
+      .slice(0, 2)
+      .forEach((item) => {
+        result.push({
+          level: "WARNING",
+          text: `${item.device_id} operating under environmental stress: ${
+            item.environmental_reasons?.join(", ") || "weather anomaly detected"
+          }`,
+        });
+      });
+
     if (shapFactors.length > 0) {
       result.push({
         level: "SHAP",
@@ -203,7 +272,7 @@ export default function DashboardMain() {
     }
 
     return result.slice(0, 4);
-  }, [sortedPredictions, shapFactors]);
+  }, [sortedPredictions, shapFactors, weatherStatuses]);
 
   const chartPoints = useMemo(() => {
     const chartData = [...sortedPredictions]
@@ -323,47 +392,54 @@ export default function DashboardMain() {
         </div>
       </section>
 
-      <section className={styles.machineFleet}>
-        {devices.map((device) => {
-          const latest = sortedPredictions.find(
-            (p) => p.machine_id === device.machine_id || p.device_id === device.device_id
-          );
+      <section className={styles.weatherGrid}>
+        <div className={styles.weatherCard}>
+          <div>
+            <p className={styles.weatherLabel}>Average Outside Temperature</p>
+            <h2 className={styles.weatherValue}>
+              {weatherStats.averageTemp !== null
+                ? `${weatherStats.averageTemp.toFixed(1)}°C`
+                : "—"}
+            </h2>
+            <span className={styles.weatherHint}>Calculated across monitored device locations</span>
+          </div>
+          <div className={styles.weatherIcon}>🌡️</div>
+        </div>
 
-          const level = (
-            latest?.risk_level ||
-            latest?.prediction_label ||
-            "NORMAL"
-          ).toUpperCase();
+        <div className={styles.weatherCard}>
+          <div>
+            <p className={styles.weatherLabel}>Devices Under Weather Impact</p>
+            <h2 className={styles.weatherValueWarning}>{weatherStats.impactedCount}</h2>
+            <span className={styles.weatherHint}>Medium or high environmental impact</span>
+          </div>
+          <div className={styles.weatherIcon}>🛰️</div>
+        </div>
 
-          return (
-            <div key={device.id} className={styles.machineCard}>
-              <div className={styles.machineTop}>
-                <span
-                  className={`${styles.machineStatusDot} ${
-                    level === "CRITICAL"
-                      ? styles.dotCritical
-                      : level === "WARNING"
-                      ? styles.dotWarning
-                      : styles.dotNormal
-                  }`}
-                />
-                <strong>{device.name || device.device_id || `Machine ${device.machine_id}`}</strong>
-              </div>
+        <div className={styles.weatherCard}>
+          <div>
+            <p className={styles.weatherLabel}>Critical Weather Alerts</p>
+            <h2 className={styles.weatherValueDanger}>{weatherStats.highImpactCount}</h2>
+            <span className={styles.weatherHint}>High impact weather conditions</span>
+          </div>
+          <div className={styles.weatherIcon}>⚠️</div>
+        </div>
 
-              <p className={styles.machineState}>{level}</p>
-
-              <div className={styles.machineMetrics}>
-                <span>Risk</span>
-                <b>{typeof latest?.risk_score === "number" ? latest.risk_score.toFixed(3) : "—"}</b>
-              </div>
-
-              <div className={styles.machineMetrics}>
-                <span>Last update</span>
-                <b>{formatTime(latest?.event_time || latest?.created_at)}</b>
-              </div>
-            </div>
-          );
-        })}
+        <div className={styles.weatherCard}>
+          <div>
+            <p className={styles.weatherLabel}>Strongest Environmental Factor</p>
+            <h2 className={styles.weatherValue}>
+              {weatherStats.strongestWeatherDevice?.weather_main || "—"}
+            </h2>
+            <span className={styles.weatherHint}>
+              {weatherStats.strongestWeatherDevice
+                ? `${weatherStats.strongestWeatherDevice.device_id} · ${
+                    weatherStats.strongestWeatherDevice.outside_temp_c?.toFixed(1) ?? "—"
+                  }°C · wind ${weatherStats.strongestWeatherDevice.wind_speed ?? "—"} m/s`
+                : "No weather data"}
+            </span>
+          </div>
+          <div className={styles.weatherIcon}>🌬️</div>
+        </div>
       </section>
 
       <section className={styles.topGrid}>
@@ -441,6 +517,73 @@ export default function DashboardMain() {
             )}
           </div>
         </div>
+      </section>
+
+      <div className={styles.sectionHeader}>
+        <div>
+          <h3 className={styles.cardTitle}>Machine Fleet Status</h3>
+          <p className={styles.cardSubtitle}>Current operational state of monitored machines</p>
+        </div>
+      </div>
+
+      <section className={styles.machineFleet}>
+        {devices.map((device) => {
+          const latest = sortedPredictions.find(
+            (p) => p.machine_id === device.machine_id || p.device_id === device.device_id
+          );
+
+          const level = (
+            latest?.risk_level ||
+            latest?.prediction_label ||
+            "NORMAL"
+          ).toUpperCase();
+
+          return (
+            <div key={device.id} className={styles.machineCard}>
+              <div className={styles.machineTop}>
+                <span
+                  className={`${styles.machineStatusDot} ${
+                    level === "CRITICAL"
+                      ? styles.dotCritical
+                      : level === "WARNING"
+                      ? styles.dotWarning
+                      : styles.dotNormal
+                  }`}
+                />
+                <strong>{device.name || device.device_id || `Machine ${device.machine_id}`}</strong>
+              </div>
+
+              <p className={styles.machineState}>{level}</p>
+
+              <div className={styles.machineMetrics}>
+                <span>Risk</span>
+                <b>{typeof latest?.risk_score === "number" ? latest.risk_score.toFixed(3) : "—"}</b>
+              </div>
+
+              <div className={styles.machineMetrics}>
+                <span>Last update</span>
+                <b>{formatTime(latest?.event_time || latest?.created_at)}</b>
+              </div>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className={styles.panel}>
+        <div className={styles.cardHeader}>
+          <div>
+            <h3 className={styles.cardTitle}>
+              Environmental Monitoring Map
+            </h3>
+
+            <p className={styles.cardSubtitle}>
+              Real-time weather-aware monitoring of industrial devices
+            </p>
+          </div>
+        </div>
+        {weatherStatuses.length > 0 && (
+          <WeatherMap devices={weatherStatuses} />
+        )}
       </section>
 
       <section className={styles.bottomGrid}>

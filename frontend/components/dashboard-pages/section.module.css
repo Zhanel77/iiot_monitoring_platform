@@ -1,61 +1,68 @@
 .page {
-  padding: 32px;
+  padding: 28px;
+  color: var(--text-main);
 }
 
 .header {
-  margin-bottom: 24px;
+  margin-bottom: 22px;
 }
 
 .kicker {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.28em;
-  color: #22d3ee;
+  letter-spacing: 0.18em;
+  color: var(--accent-cyan);
 }
 
 .title {
   margin: 0;
-  font-size: 38px;
-  font-weight: 800;
-  line-height: 1.1;
-  color: #f8fafc;
+  font-size: 32px;
+  font-weight: 760;
+  line-height: 1.15;
+  color: var(--text-main);
 }
 
 .subtitle {
-  margin-top: 10px;
+  margin-top: 8px;
   max-width: 720px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.5;
+}
+
+.stateBox,
+.errorBox,
+.card,
+.tableWrap,
+.profileCard,
+.machineCard {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 .stateBox,
 .errorBox {
-  padding: 18px 20px;
-  border-radius: 18px;
-  border: 1px solid #1e293b;
-  background: rgba(15, 23, 42, 0.92);
-  color: #cbd5e1;
+  padding: 16px 18px;
+  color: var(--text-soft);
 }
 
 .errorBox {
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.3);
-  background: rgba(127, 29, 29, 0.14);
+  color: #f0b6b6;
+  border-color: rgba(217, 108, 108, 0.35);
+  background: rgba(217, 108, 108, 0.12);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
 }
 
 .card {
-  background: rgba(15, 23, 42, 0.92);
-  border: 1px solid #1e293b;
-  border-radius: 22px;
-  padding: 20px;
+  padding: 18px;
 }
 
 .cardTop {
@@ -63,81 +70,78 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .cardLabel {
-  margin: 0 0 8px;
+  margin: 0 0 7px;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .cardTitle {
-  margin: 0 0 12px;
-  font-size: 20px;
-  font-weight: 700;
-  color: #f8fafc;
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 720;
+  color: var(--text-main);
 }
 
 .cardText {
   margin: 0 0 10px;
-  color: #cbd5e1;
-  line-height: 1.6;
+  color: var(--text-soft);
+  line-height: 1.55;
 }
 
 .cardFooter {
   margin: 12px 0 0;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .metaBlock {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  color: #cbd5e1;
+  gap: 9px;
+  color: var(--text-soft);
 }
 
 .mutedText {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 92px;
-  padding: 6px 10px;
+  min-width: 88px;
+  padding: 5px 9px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .badgeNormal {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
-  border: 1px solid rgba(34, 197, 94, 0.25);
+  background: rgba(111, 191, 115, 0.14);
+  color: var(--success);
+  border: 1px solid rgba(111, 191, 115, 0.3);
 }
 
 .badgeWarning {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: rgba(216, 166, 87, 0.14);
+  color: var(--warning);
+  border: 1px solid rgba(216, 166, 87, 0.3);
 }
 
 .badgeCritical {
-  background: rgba(244, 63, 94, 0.15);
-  color: #fb7185;
-  border: 1px solid rgba(244, 63, 94, 0.25);
+  background: rgba(217, 108, 108, 0.14);
+  color: var(--danger);
+  border: 1px solid rgba(217, 108, 108, 0.3);
 }
 
 .tableWrap {
   overflow-x: auto;
-  background: rgba(15, 23, 42, 0.92);
-  border: 1px solid #1e293b;
-  border-radius: 22px;
 }
 
 .table {
@@ -147,64 +151,65 @@
 
 .table th,
 .table td {
-  padding: 16px;
+  padding: 14px 15px;
   text-align: left;
-  border-bottom: 1px solid rgba(30, 41, 59, 0.85);
-  color: #e2e8f0;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-soft);
   font-size: 14px;
 }
 
 .table th {
-  color: #94a3b8;
-  font-weight: 600;
-  background: rgba(2, 6, 23, 0.4);
+  color: var(--text-muted);
+  font-weight: 650;
+  background: #111923;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
 }
 
 .profileCard {
   max-width: 720px;
-  background: rgba(15, 23, 42, 0.92);
-  border: 1px solid #1e293b;
-  border-radius: 24px;
-  padding: 24px;
+  padding: 22px;
 }
 
 .profileAvatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 20px;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
-  color: #001018;
-  background: linear-gradient(135deg, #22d3ee 0%, #a78bfa 100%);
-  margin-bottom: 20px;
+  color: #ffffff;
+  background: var(--accent-blue);
+  margin-bottom: 18px;
 }
 
 .profileDetails {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .profileRow {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(2, 6, 23, 0.7);
-  border: 1px solid rgba(30, 41, 59, 0.85);
+  padding: 13px 15px;
+  border-radius: var(--radius-md);
+  background: #111923;
+  border: 1px solid var(--border-soft);
 }
 
 .profileLabel {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
 .profileValue {
-  color: #f8fafc;
+  color: var(--text-main);
   font-weight: 600;
   text-align: right;
 }
@@ -212,7 +217,7 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .formField {
@@ -223,17 +228,17 @@
 
 .formLabel {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .formInput,
 .formSelect {
   width: 100%;
-  border-radius: 14px;
-  border: 1px solid rgba(30, 41, 59, 0.85);
-  background: rgba(2, 6, 23, 0.7);
-  color: #f8fafc;
-  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft);
+  background: #111923;
+  color: var(--text-main);
+  padding: 13px 15px;
   font-size: 14px;
   outline: none;
 }
@@ -244,157 +249,136 @@
 
 .formInput:focus,
 .formSelect:focus {
-  border-color: rgba(34, 211, 238, 0.35);
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(75, 142, 207, 0.12);
 }
 
 .primaryButton {
   margin-top: 8px;
-  border: none;
   cursor: pointer;
-  border-radius: 14px;
-  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  padding: 13px 15px;
   font-size: 14px;
   font-weight: 700;
-  color: #001018;
-  background: linear-gradient(135deg, #22d3ee 0%, #60a5fa 100%);
+  color: #ffffff;
+  background: var(--accent-blue);
+  border: 1px solid var(--accent-blue);
 }
 
 .secondaryButton {
-  border: none;
   cursor: pointer;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
   font-size: 13px;
   font-weight: 700;
-  color: #f8fafc;
-  background: rgba(34, 211, 238, 0.12);
-  border: 1px solid rgba(34, 211, 238, 0.24);
+  color: var(--text-main);
+  background: #111923;
+  border: 1px solid var(--border-soft);
+}
+
+.secondaryButton:hover,
+.primaryButton:hover {
+  filter: brightness(1.08);
 }
 
 .machineGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 14px;
   margin-top: 18px;
 }
 
 .machineCard {
   position: relative;
   overflow: hidden;
-  border-radius: 24px;
-  padding: 22px;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.92));
-  border: 1px solid rgba(30, 41, 59, 0.95);
-  transition: transform 0.2s ease;
+  padding: 18px;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .machineCard:hover {
-  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  background: var(--bg-surface-soft);
 }
 
 .machineGlowNormal::before,
 .machineGlowWarning::before,
 .machineGlowCritical::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.08;
-  pointer-events: none;
-}
-
-.machineGlowNormal::before {
-  background: radial-gradient(circle at top right, #22c55e, transparent 60%);
-}
-
-.machineGlowWarning::before {
-  background: radial-gradient(circle at top right, #f59e0b, transparent 60%);
-}
-
-.machineGlowCritical::before {
-  background: radial-gradient(circle at top right, #ef4444, transparent 60%);
+  display: none;
 }
 
 .machineHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .machineName {
   margin: 0;
-  font-size: 20px;
-  font-weight: 800;
-  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 760;
+  color: var(--text-main);
 }
 
 .machineStatus {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
 .machineStatusNormal {
-  color: #4ade80;
+  color: var(--success);
 }
 
 .machineStatusWarning {
-  color: #fbbf24;
+  color: var(--warning);
 }
 
 .machineStatusCritical {
-  color: #fb7185;
+  color: var(--danger);
 }
 
 .machineTelemetry {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 18px;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .telemetryCard {
   padding: 12px;
-  border-radius: 16px;
-  background: rgba(2, 6, 23, 0.7);
-  border: 1px solid rgba(30, 41, 59, 0.85);
+  border-radius: var(--radius-md);
+  background: #111923;
+  border: 1px solid var(--border-soft);
 }
 
 .telemetryLabel {
   display: block;
   margin-bottom: 6px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .telemetryValue {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--text-main);
 }
 
 .machineAction {
-  margin-top: 18px;
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(30, 41, 59, 0.85);
-  color: #cbd5e1;
-  line-height: 1.6;
+  margin-top: 16px;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  background: #111923;
+  border: 1px solid var(--border-soft);
+  color: var(--text-soft);
+  line-height: 1.55;
 }
 
 @media (max-width: 1200px) {
   .machineGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 700px) {
-  .machineGrid {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -413,7 +397,15 @@
     font-size: 30px;
   }
 
+  .machineGrid {
+    grid-template-columns: 1fr;
+  }
+
   .profileRow {
     flex-direction: column;
+  }
+
+  .profileValue {
+    text-align: left;
   }
 }

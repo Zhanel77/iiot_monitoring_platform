@@ -42,9 +42,12 @@ export function getRolePermissions(role?: string) {
 export function canAccessPath(role: string | undefined, pathname: string) {
   const permissions = getRolePermissions(role);
 
-  if (pathname === "/dashboard") return permissions.canViewDashboard;
+  if (pathname === "/dashboard") 
+    return permissions.canViewDashboard;
   if (pathname.startsWith("/dashboard/devices"))
     return permissions.canViewDevices;
+  if (pathname.startsWith("/dashboard/weather")) 
+    return permissions.canViewDashboard;
   if (pathname.startsWith("/dashboard/predictions"))
     return permissions.canViewPredictions;
   if (pathname.startsWith("/dashboard/alerts"))
@@ -57,6 +60,6 @@ export function canAccessPath(role: string | undefined, pathname: string) {
     return permissions.canManageUsers;
   if (pathname.startsWith("/dashboard/grafana"))
     return permissions.canViewDashboard;
-
+  
   return false;
 }

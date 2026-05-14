@@ -17,27 +17,52 @@ def calculate_weather_impact(
     temp: float | None,
     humidity: float | None,
     wind: float | None,
-) -> str:
+    weather_main: str | None,
+) -> tuple[str, list[str]]:
+
     score = 0
+    reasons = []
 
-    if temp and temp > 32:
-        score += 2
-    elif temp and temp > 26:
+    if temp is not None:
+        if temp > 35:
+            score += 2
+            reasons.append("Extreme outside temperature")
+
+        elif temp > 28:
+            score += 1
+            reasons.append("High outside temperature")
+
+    if humidity is not None and humidity > 80:
         score += 1
+        reasons.append("High humidity")
 
-    if humidity and humidity > 80:
-        score += 1
+    if wind is not None:
+        if wind > 12:
+            score += 2
+            reasons.append("Strong wind conditions")
 
-    if wind and wind > 10:
-        score += 1
+        elif wind > 8:
+            score += 1
+            reasons.append("Elevated wind speed")
 
-    if score >= 3:
-        return "HIGH"
+    if weather_main:
+        weather_upper = weather_main.upper()
 
-    if score >= 1:
-        return "MEDIUM"
+        if weather_upper in ["DUST", "SAND", "ASH"]:
+            score += 2
+            reasons.append("Dust storm conditions")
 
-    return "LOW"
+        elif weather_upper in ["THUNDERSTORM", "TORNADO"]:
+            score += 3
+            reasons.append("Severe weather event")
+
+    if score >= 4:
+        return "HIGH", reasons
+
+    if score >= 2:
+        return "MEDIUM", reasons
+
+    return "LOW", reasons
 
 
 @router.get(
@@ -69,12 +94,14 @@ def get_devices_weather_status(
             )
 
         weather_impact = "LOW"
+        environmental_reasons = []
 
         if weather:
-            weather_impact = calculate_weather_impact(
+            weather_impact, environmental_reasons = calculate_weather_impact(
                 weather.get("outside_temp_c"),
                 weather.get("outside_humidity"),
                 weather.get("wind_speed"),
+                weather.get("weather_main"),
             )
 
         result.append(
@@ -126,6 +153,8 @@ def get_devices_weather_status(
                     if weather
                     else None
                 ),
+
+                environmental_reasons=environmental_reasons,
 
                 weather_impact=weather_impact,
             )

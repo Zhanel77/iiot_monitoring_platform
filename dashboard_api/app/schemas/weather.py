@@ -18,3 +18,4 @@ class DeviceWeatherStatus(BaseModel):
     weather_main: str | None = None
 
     weather_impact: str | None = None
+    environmental_reasons: list[str] | None = None

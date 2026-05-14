@@ -24,6 +24,9 @@ export default function Sidebar({ user }: SidebarProps) {
     permissions.canViewDashboard
       ? { label: "Control Center", href: "/dashboard", icon: "▣" }
       : null,
+    permissions.canViewDashboard
+      ? { label: "Weather Monitoring", href: "/dashboard/weather", icon: "☁" }
+      : null,
     permissions.canViewDevices
       ? { label: "Machines", href: "/dashboard/devices", icon: "⌘" }
       : null,
