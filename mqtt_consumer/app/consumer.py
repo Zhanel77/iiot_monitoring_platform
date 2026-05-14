@@ -120,7 +120,7 @@ class MQTTConsumer:
             logger.info("Subscribed to topic | topic=%s", Settings.MQTT_TOPIC_EDGE)
         else:
             logger.error("Failed to connect to MQTT broker | rc=%s", rc)
-
+            
     def on_message(
         self,
         client: mqtt.Client,
@@ -154,20 +154,23 @@ class MQTTConsumer:
             self.influx.write_edge_event(event)
 
             if self._should_create_alert(event):
+                edge_message = (
+                    f"Edge model detected high risk for {event['device_id']} "
+                    f"(score={event['risk_score']:.4f}, "
+                    f"level={event['risk_level']}, model=edge)"
+                )
+
                 self.pg.insert_alert(
                     device_id=event["device_id"],
                     machine_id=event["machine_id"],
                     prediction_id=edge_prediction_id,
-                    risk_score=float(cloud_result["risk_score"]),
-                    risk_level=str(cloud_result["prediction_label"]),
-                    features_used=cloud_result.get("features_used"),
-                    top_factors=cloud_result.get("top_factors"),
+                    risk_score=float(event["risk_score"]),
+                    risk_level=str(event["risk_level"]),
+                    features_used=None,
+                    top_factors=None,
                     alert_type="edge_fast_alert",
-                    severity=self._severity_from_score(event["risk_score"]),
-                    message=(
-                        f"Edge detected high risk for {event['device_id']} "
-                        f"(score={event['risk_score']:.4f}, level={event['risk_level']}, model=edge)"
-                    ),
+                    severity=self._severity_from_score(float(event["risk_score"])),
+                    message=edge_message,
                 )
 
                 logger.warning(
@@ -179,11 +182,11 @@ class MQTTConsumer:
 
             if Settings.ENABLE_CLOUD_PREDICTION:
                 cloud_result = self._get_cloud_prediction(event)
+
                 if cloud_result is not None:
-                    # Извлекаем новые поля
                     weather_factor = cloud_result.get("weather_factor")
                     ml_risk_score = cloud_result.get("ml_risk_score")
-                    
+
                     cloud_prediction_id = self.pg.insert_prediction(
                         device_id=event["device_id"],
                         machine_id=event["machine_id"],
@@ -196,39 +199,66 @@ class MQTTConsumer:
                         features_used=cloud_result.get("features_used"),
                         top_factors=cloud_result.get("top_factors"),
                         model_type="cloud",
-                        weather_factor=weather_factor,  # НОВОЕ
-                        ml_risk_score=ml_risk_score,     # НОВОЕ
+                        weather_factor=weather_factor,
+                        ml_risk_score=ml_risk_score,
                     )
 
-                    # Записываем в InfluxDB с дополнительной информацией
                     self.influx.write_cloud_event(
-                    {
-                        **event,
-                        "prediction": int(cloud_result.get("prediction", 0)),
-                        "risk_score": float(cloud_result.get("risk_score", 0.0)),
-                        "risk_level": str(cloud_result.get("prediction_label", "NORMAL")),
-                        "model_type": "cloud",
-                        "weather_factor": cloud_result.get("weather_factor") or 1.0,  # None -> 1.0
-                        "ml_risk_score": cloud_result.get("ml_risk_score") or cloud_result.get("risk_score", 0.0),
-                    })
-                    # Обновляем создание алерта с учетом weather фактора
+                        {
+                            **event,
+                            "prediction": int(cloud_result.get("prediction", 0)),
+                            "risk_score": float(cloud_result.get("risk_score", 0.0)),
+                            "risk_level": str(
+                                cloud_result.get("prediction_label", "NORMAL")
+                            ),
+                            "model_type": "cloud",
+                            "weather_factor": weather_factor or 1.0,
+                            "ml_risk_score": ml_risk_score
+                            or cloud_result.get("risk_score", 0.0),
+                        }
+                    )
+
                     if self._should_create_alert_from_result(cloud_result):
                         top_factors = cloud_result.get("top_factors", [])
-                        
-                        # Проверяем, есть ли weather фактор в объяснениях
-                        weather_factors = [f for f in top_factors if f.get("feature") == "weather_context"]
-                        weather_explanation = ""
-                        if weather_factors:
-                            weather_explanation = f" Weather adjusted risk (factor={weather_factors[0].get('feature_value', 1.0)})."
-                        
-                        explanation = build_explanation(
-                            top_factors=top_factors,
-                            risk_level=str(cloud_result["prediction_label"]),
-                        ) if top_factors else "No SHAP explanation available"
-                        
-                        # Добавляем информацию о weather факторе в alert
+
+                        explanation = (
+                            build_explanation(
+                                top_factors=top_factors,
+                                risk_level=str(cloud_result["prediction_label"]),
+                            )
+                            if top_factors
+                            else "No SHAP explanation available."
+                        )
+
                         if weather_factor and weather_factor != 1.0:
-                            explanation = f"{explanation} Weather factor applied: {weather_factor:.2f}. (ML risk: {ml_risk_score:.4f} -> final: {cloud_result['risk_score']:.4f})"
+                            base_score = (
+                                f"{float(ml_risk_score):.4f}"
+                                if ml_risk_score is not None
+                                else "unknown"
+                            )
+
+                            explanation += (
+                                f" Weather factor applied: {float(weather_factor):.2f}. "
+                                f"(ML risk: {base_score} -> "
+                                f"final: {float(cloud_result['risk_score']):.4f})"
+                            )
+
+                        cloud_message = (
+                            f"Cloud AI detected high risk for Machine {event['machine_id']}. "
+                            f"Risk score={float(cloud_result['risk_score']):.4f}. "
+                        )
+
+                        if ml_risk_score is not None:
+                            cloud_message += (
+                                f"ML base score={float(ml_risk_score):.4f}. "
+                            )
+
+                        if weather_factor and weather_factor != 1.0:
+                            cloud_message += (
+                                f"Weather factor={float(weather_factor):.2f}. "
+                            )
+
+                        cloud_message += f"Explanation: {explanation}"
 
                         self.pg.insert_alert(
                             device_id=event["device_id"],
@@ -239,16 +269,12 @@ class MQTTConsumer:
                             features_used=cloud_result.get("features_used"),
                             top_factors=cloud_result.get("top_factors"),
                             alert_type="cloud_shap_risk",
-                            severity=self._severity_from_score(float(cloud_result["risk_score"])),
-                            message=(
-                                f"Cloud AI detected high risk for Machine {event['machine_id']}. "
-                                f"Risk score={float(cloud_result['risk_score']):.4f}. "
-                                f"ML base score={ml_risk_score:.4f} " if ml_risk_score else ""
-                                f"Weather factor={weather_factor:.2f} " if weather_factor and weather_factor != 1.0 else ""
-                                f"Explanation: {explanation}"
+                            severity=self._severity_from_score(
+                                float(cloud_result["risk_score"])
                             ),
+                            message=cloud_message,
                         )
-                        
+
                         logger.warning(
                             "Cloud alert created | device_id=%s machine_id=%s risk_score=%.4f weather_factor=%s",
                             event["device_id"],
@@ -258,12 +284,14 @@ class MQTTConsumer:
                         )
 
                     logger.info(
-                        "Cloud prediction stored | device_id=%s machine_id=%s prediction=%s risk_score=%.4f ml_risk=%.4f weather_factor=%s risk_level=%s",
+                        "Cloud prediction stored | device_id=%s machine_id=%s prediction=%s risk_score=%.4f ml_risk=%s weather_factor=%s risk_level=%s",
                         event["device_id"],
                         event["machine_id"],
                         int(cloud_result["prediction"]),
                         float(cloud_result["risk_score"]),
-                        ml_risk_score if ml_risk_score else float(cloud_result["risk_score"]),
+                        ml_risk_score
+                        if ml_risk_score is not None
+                        else float(cloud_result["risk_score"]),
                         weather_factor if weather_factor else 1.0,
                         str(cloud_result["prediction_label"]),
                     )
