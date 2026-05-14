@@ -6,7 +6,8 @@ import Sidebar from "@/components/sidebar/sidebar";
 import styles from "./dashboard-layout.module.css";
 import { fetchJson, getAccessToken } from "@/components/dashboard-pages/api";
 import { canAccessPath } from "@/components/dashboard-pages/permissions";
-import { AlertNotifications } from "@/components/alerts/AlertNotifications";
+import { MachineShapNotifications } from "@/components/alerts/AlertNotifications";
+import { WeatherNotifications } from "@/components/weather/WeatherNotifications";
 
 type UserInfo = {
   id?: number;
@@ -79,7 +80,8 @@ export default function DashboardLayout({
 
   return (
     <div className={styles.layout}>
-      <AlertNotifications />
+      <MachineShapNotifications />
+      <WeatherNotifications />
       <Sidebar user={user || undefined} />
       <div className={styles.content}>{children}</div>
     </div>
