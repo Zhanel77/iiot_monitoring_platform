@@ -98,14 +98,28 @@ export default function DashboardMain() {
 
     const load = async () => {
       try {
-        const [healthData, meData, devicesData, predictionsData, weatherData] =
-          await Promise.all([
-            fetchJson<HealthResponse>(`${apiUrl}/health`),
-            fetchJson<UserInfo>(`${apiUrl}/api/v1/auth/me`),
-            fetchJson<Device[]>(`${apiUrl}/api/v1/devices`),
-            fetchJson<Prediction[]>(`${apiUrl}/api/v1/predictions`),
-            fetchJson<DeviceWeatherStatus[]>(`${apiUrl}/api/v1/weather/devices-status`),
-          ]);
+        const results = await Promise.allSettled([
+          fetchJson<HealthResponse>(`${apiUrl}/health`),
+          fetchJson<UserInfo>(`${apiUrl}/api/v1/auth/me`),
+          fetchJson<Device[]>(`${apiUrl}/api/v1/devices`),
+          fetchJson<Prediction[]>(`${apiUrl}/api/v1/predictions`),
+          fetchJson<DeviceWeatherStatus[]>(`${apiUrl}/api/v1/weather/devices-status`),
+        ]);
+
+        const healthData =
+          results[0].status === "fulfilled" ? results[0].value : null;
+
+        const meData =
+          results[1].status === "fulfilled" ? results[1].value : null;
+
+        const devicesData =
+          results[2].status === "fulfilled" ? results[2].value : [];
+
+        const predictionsData =
+          results[3].status === "fulfilled" ? results[3].value : [];
+
+        const weatherData =
+          results[4].status === "fulfilled" ? results[4].value : [];
 
         setHealth(healthData);
         setUser(meData);

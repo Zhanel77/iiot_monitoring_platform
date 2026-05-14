@@ -5,130 +5,86 @@ import { notifications } from "@mantine/notifications";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-type WeatherStatus = {
-  device_id: string;
+type Prediction = {
+  id: number;
+  device_id?: string;
   machine_id?: number;
-  weather_impact?: string | null;
-  environmental_reasons?: string[];
-  outside_temp_c?: number | null;
-  wind_speed?: number | null;
-  weather_main?: string | null;
+  risk_level?: string;
+  risk_score?: number;
+  model_type?: string;
+  model_name?: string;
 };
 
-export function AlertNotifications() {
-  const shownMachineAlerts = useRef(new Set<number>());
-  const shownWeatherAlerts = useRef(new Set<string>());
+export function MachineShapNotifications() {
+  const shownRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
+    const saved = sessionStorage.getItem("shown-machine-alerts");
+    if (saved) {
+      shownRef.current = new Set(JSON.parse(saved));
+    }
+
     const loadMachineAlerts = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/v1/alerts/open`, {
+        const res = await fetch(`${API_URL}/api/v1/predictions`, {
           cache: "no-store",
         });
 
-        const alerts = await res.json();
+        const predictions: Prediction[] = await res.json();
 
-        if (!Array.isArray(alerts) || alerts.length === 0) return;
+        if (!Array.isArray(predictions)) return;
+
+        const alerts = predictions
+          .filter((item) => {
+            const level = item.risk_level?.toUpperCase();
+            return level === "CRITICAL" || level === "WARNING";
+          })
+          .slice(0, 5);
 
         alerts.forEach((alert) => {
-          if (shownMachineAlerts.current.has(alert.id)) {
-            return;
-          }
+          if (shownRef.current.has(alert.id)) return;
 
-          shownMachineAlerts.current.add(alert.id);
+          shownRef.current.add(alert.id);
+          sessionStorage.setItem(
+            "shown-machine-alerts",
+            JSON.stringify([...shownRef.current])
+          );
+
+          const level = alert.risk_level?.toUpperCase();
 
           notifications.show({
             title:
-              alert.severity === "critical"
+              level === "CRITICAL"
                 ? `🚨 Critical Machine ${alert.machine_id}`
                 : `⚠ Warning Machine ${alert.machine_id}`,
-
             message: (
               <div
                 onClick={() => {
-                  window.location.href = `/dashboard/alerts?alertId=${alert.id}`;
+                  window.location.href = "/dashboard/alerts";
                 }}
                 style={{ cursor: "pointer" }}
               >
-                {alert.message ||
-                  "Operational risk exceeded normal threshold."}
+                AI detected {level?.toLowerCase()} risk for{" "}
+                {alert.device_id || `Machine ${alert.machine_id}`}. Risk score:{" "}
+                {typeof alert.risk_score === "number"
+                  ? alert.risk_score.toFixed(4)
+                  : "—"}
               </div>
             ),
-
-            color:
-              alert.severity === "critical"
-                ? "red"
-                : "orange",
-
+            color: level === "CRITICAL" ? "red" : "orange",
             autoClose: 10000,
             withBorder: true,
           });
         });
       } catch (error) {
-        console.error("Failed to load machine alerts", error);
-      }
-    };
-
-    const loadWeatherAlerts = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/v1/weather/devices-status`, {
-          cache: "no-store",
-        });
-
-        const weatherItems: WeatherStatus[] = await res.json();
-
-        if (!Array.isArray(weatherItems) || weatherItems.length === 0) return;
-
-        weatherItems
-          .filter((item) => {
-            const impact = item.weather_impact?.toUpperCase();
-            return impact === "MEDIUM" || impact === "HIGH";
-          })
-          .forEach((item) => {
-            const alertKey = `${item.device_id}-${item.weather_impact}-${item.environmental_reasons?.join("_")}`;
-
-            if (shownWeatherAlerts.current.has(alertKey)) return;
-
-            shownWeatherAlerts.current.add(alertKey);
-
-            const reasons =
-              item.environmental_reasons && item.environmental_reasons.length > 0
-                ? item.environmental_reasons.join(", ")
-                : `${item.weather_main ?? "Weather anomaly"} detected`;
-
-            notifications.show({
-              title: `🌦 WEATHER IMPACT: ${item.device_id}`,
-              message: (
-                <div
-                  onClick={() => {
-                    window.location.href = "/dashboard/weather";
-                  }}
-                  style={{ cursor: "pointer" }}
-                >
-                  {reasons}. Temp: {item.outside_temp_c ?? "—"}°C, wind:{" "}
-                  {item.wind_speed ?? "—"} m/s. Click to view weather monitoring.
-                </div>
-              ),
-              color: item.weather_impact?.toUpperCase() === "HIGH" ? "red" : "orange",
-              autoClose: 10000,
-              withBorder: true,
-            });
-          });
-      } catch (error) {
-        console.error("Failed to load weather alerts", error);
+        console.error("Failed to load machine SHAP alerts", error);
       }
     };
 
     loadMachineAlerts();
-    loadWeatherAlerts();
+    const interval = setInterval(loadMachineAlerts, 15000);
 
-    const machineInterval = setInterval(loadMachineAlerts, 5000);
-    const weatherInterval = setInterval(loadWeatherAlerts, 60000);
-
-    return () => {
-      clearInterval(machineInterval);
-      clearInterval(weatherInterval);
-    };
+    return () => clearInterval(interval);
   }, []);
 
   return null;
