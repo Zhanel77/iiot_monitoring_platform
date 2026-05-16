@@ -9,13 +9,16 @@ from app.schemas.prediction import PredictionCreate, PredictionRead
 router = APIRouter(prefix="/predictions", tags=["predictions"])
 
 
+from fastapi import Query
+
 @router.get("", response_model=list[PredictionRead])
 def get_predictions(
+    limit: int = Query(50, ge=1, le=1000),
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
 ):
     repo = PredictionRepository(db)
-    return repo.get_for_user(user)
+    return repo.get_for_user(user, limit=limit)
 
 
 @router.post("", response_model=PredictionRead)

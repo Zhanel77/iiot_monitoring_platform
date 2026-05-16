@@ -14,13 +14,19 @@ class PredictionRepository:
         self.db.refresh(obj)
         return obj
 
-    def get_for_user(self, user):
-        if user.role == "admin":
-            return self.db.query(Prediction).all()
+    def get_for_user(self, user, limit: int = 50):
+        query = self.db.query(Prediction)
+
+        if user.role != "admin":
+            query = (
+                query
+                .join(UserDevice, Prediction.machine_id == UserDevice.device_id)
+                .filter(UserDevice.user_id == user.id)
+            )
 
         return (
-            self.db.query(Prediction)
-            .join(UserDevice, Prediction.machine_id == UserDevice.device_id)
-            .filter(UserDevice.user_id == user.id)
+            query
+            .order_by(Prediction.event_time.desc())
+            .limit(limit)
             .all()
         )
