@@ -83,15 +83,6 @@ services:
       - influxdb
     restart: always
 
-  # alert-service:
-  #   build: ./alert_service
-  #   container_name: alert-service
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - postgres
-  #   restart: always
-
   dashboard_api:
     build:
       context: ./dashboard_api
