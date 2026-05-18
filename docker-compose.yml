@@ -1,0 +1,120 @@
+version: "3.9"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./infrastructure/mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    restart: always
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: predictive_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/migrations:/docker-entrypoint-initdb.d
+    restart: always
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influx_data:/var/lib/influxdb2
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin12345
+      DOCKER_INFLUXDB_INIT_ORG: iiot-org
+      DOCKER_INFLUXDB_INIT_BUCKET: iiot-bucket
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-token
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - influxdb
+      - postgres
+
+  edge-service:
+    build: ./edge
+    container_name: edge-service
+    env_file:
+      - .env
+    depends_on:
+      - mosquitto
+    restart: always
+
+  mqtt-consumer:
+    build: ./mqtt_consumer
+    container_name: mqtt-consumer
+    env_file:
+      - .env
+    depends_on:
+      - dashboard_api
+      - mosquitto
+      - postgres
+      - influxdb
+    restart: always
+
+  # alert-service:
+  #   build: ./alert_service
+  #   container_name: alert-service
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - postgres
+  #   restart: always
+
+  dashboard_api:
+    build:
+      context: ./dashboard_api
+    container_name: dashboard_api
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    restart: always
+
+  simulator:
+    build: ./simulator
+    container_name: simulator
+    env_file:
+      - .env
+    depends_on:
+      - edge-service
+      - mosquitto
+    restart: always
+
+volumes:
+  postgres_data:
+  influx_data:
+  grafana_data:
